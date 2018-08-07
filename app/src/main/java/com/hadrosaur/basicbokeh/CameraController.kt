@@ -366,13 +366,10 @@ fun captureStillPicture(activity: Activity, params: CameraParams) {
                                                 @NonNull request: CaptureRequest,
                                                 @NonNull result: TotalCaptureResult) {
 
-                    Toast.makeText(activity, "Saved: " + SAVE_FILE, Toast.LENGTH_LONG)
+//                    Toast.makeText(activity, "Saved: " + SAVE_FILE, Toast.LENGTH_LONG)
 //                    Log.d(LOG_TAG, "Results: " + session.toString() + " || " + request.toString())
                             //                    Log.d(LOG_TAG, "Saved photo to file: " + file.toString() + result.partialResults.toString())
 
-                    Log.d(LOG_TAG, "On Completed. Image is available, about to post.")
-                    params.backgroundHandler?.post(ImageSaver(activity, params.imageReader?.acquireLatestImage(), params.capturedPhoto, capturedImageRotation, params.isFront))
-                    Log.d(LOG_TAG, "On Completed. Post has been set.")
 
                     unlockFocus(activity, params);
                 }

@@ -93,6 +93,8 @@ class MainActivity : AppCompatActivity() {
                     captureCallback = CaptureSessionCallback(this@MainActivity, this)
 //                    textureListener = TextureListener(this,this@MainActivity)
 
+                    imageAvailableListener = ImageAvailableListener(this@MainActivity, this)
+
                     if (Build.VERSION.SDK_INT >= 28) {
                         physicalCameras = cameraChars.physicalCameraIds
                     }

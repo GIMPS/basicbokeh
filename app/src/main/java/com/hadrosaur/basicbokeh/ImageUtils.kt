@@ -20,11 +20,14 @@ import java.io.IOException
 class ImageAvailableListener(private val activity: Activity, internal var params: CameraParams) : ImageReader.OnImageAvailableListener {
 
     override fun onImageAvailable(reader: ImageReader) {
+        // Orientation
+        val rotation = activity.getWindowManager().getDefaultDisplay().getRotation()
+        val capturedImageRotation = getOrientation(params, rotation)
+
         Log.d(MainActivity.LOG_TAG, "ImageReader. Image is available, about to post.")
-        params.backgroundHandler?.post(ImageSaver(activity, reader.acquireNextImage(), params.capturedPhoto, 90, params.isFront))
+        params.backgroundHandler?.post(ImageSaver(activity, reader.acquireNextImage(), params.capturedPhoto, capturedImageRotation, params.isFront))
         Log.d(MainActivity.LOG_TAG, "ImageReader. Post has been set.")
     }
-
 }
 
 class ImageSaver internal constructor(private val activity: Activity, private val image: Image?, private val imageView: ImageView?, private val rotation: Int, private val flip: Boolean) : Runnable {
@@ -35,10 +38,21 @@ class ImageSaver internal constructor(private val activity: Activity, private va
         if (null == image)
             return
 
+        Log.d(LOG_TAG, "ImageSaver. Image is not null.")
+
         val file = File(Environment.getExternalStorageDirectory(), MainActivity.SAVE_FILE)
 
+        Log.d(LOG_TAG, "ImageSaver. Got file handle.")
+
+
         val buffer = image.planes[0].buffer
+
+        Log.d(LOG_TAG, "ImageSaver. Got image buffer planes")
+
         val bytes = ByteArray(buffer.remaining())
+
+        Log.d(LOG_TAG, "ImageSaver. image got the buffer remaining")
+
         buffer.get(bytes)
 
         Log.d(LOG_TAG, "Got the photo, converted to bytes. About to set image view.")
@@ -52,10 +66,10 @@ class ImageSaver internal constructor(private val activity: Activity, private va
         var finalBitmap = blurredImageBitmap
 
         //If front facing camera, flip the bitmap
-        if (flip)
-            finalBitmap = horizontalFlip(activity, finalBitmap)
+//        if (flip)
+            val finalBitmap2 = horizontalFlip(activity, finalBitmap)
 
-        setCapturedPhoto(activity, imageView, finalBitmap)
+        setCapturedPhoto(activity, imageView, finalBitmap2)
 
         Log.d(LOG_TAG, "Now saving photo to disk.")
 
