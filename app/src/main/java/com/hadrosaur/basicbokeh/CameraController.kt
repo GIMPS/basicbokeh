@@ -27,6 +27,9 @@ import com.hadrosaur.basicbokeh.MainActivity.Companion.SAVE_FILE
 import java.util.*
 import android.hardware.camera2.CameraAccessException
 import com.hadrosaur.basicbokeh.MainActivity.Companion.cameraParams
+import android.hardware.camera2.CaptureResult
+
+
 
 
 public val STATE_UNINITIALIZED = -1
@@ -71,6 +74,16 @@ private fun createCameraPreviewSession(activity: Activity, camera: CameraDevice,
 
                             if (params.hasSepia)
                                 Log.d(LOG_TAG, "WE HAVE SEPIA, setting it!!")
+
+                            if (params.hasManualControl && params.minFocusDistance != MainActivity.FIXED_FOCUS_DISTANCE) {
+                                //Request largest aperture
+                                params.previewBuilder?.set(CaptureRequest.LENS_APERTURE, params.largestAperture)
+
+                                //Focus on the closest point
+                                params.previewBuilder?.set(CaptureRequest.LENS_FOCUS_DISTANCE, params.minFocusDistance)
+                            } else {
+                                //Do digital zoom
+                            }
 
                             // Finally, we start displaying the camera preview.
                             cameraCaptureSession.setRepeatingRequest(params.previewBuilder?.build(),
@@ -355,6 +368,10 @@ fun captureStillPicture(activity: Activity, params: CameraParams) {
             else if (params.hasMono)
                 params.captureBuilder?.set(CaptureRequest.CONTROL_EFFECT_MODE, CameraMetadata.CONTROL_EFFECT_MODE_MONO)
 
+            // Request face detection
+            params.captureBuilder?.set(CaptureRequest.STATISTICS_FACE_DETECT_MODE,
+                    CameraMetadata.STATISTICS_FACE_DETECT_MODE_FULL)
+
             // Orientation
             val rotation = activity.getWindowManager().getDefaultDisplay().getRotation()
             val capturedImageRotation = getOrientation(params, rotation)
@@ -365,6 +382,28 @@ fun captureStillPicture(activity: Activity, params: CameraParams) {
                 override fun onCaptureCompleted(@NonNull session: CameraCaptureSession,
                                                 @NonNull request: CaptureRequest,
                                                 @NonNull result: TotalCaptureResult) {
+
+                    val mode = result.get(CaptureResult.STATISTICS_FACE_DETECT_MODE)
+                    val faces = result.get(CaptureResult.STATISTICS_FACES)
+                    if (faces != null && mode != null) {
+                        Log.d(LOG_TAG, "faces : " + faces.size + " , mode : " + mode)
+                        for (face in faces) {
+                            val rect = face.bounds
+                            Log.d(LOG_TAG, "Bounds: bottom: " + rect.bottom + " left: " + rect.left + " right: " + rect.right + " top: " + rect.top)
+                        }
+
+                        if (faces.size > 0) {
+                            params.hasFace = true
+                            params.faceBounds = faces.first().bounds
+//TODO                            expandBounds(faceBounds) //Include the whole head, not just the face
+                            expandBounds(faceBounds) //Include the whole head, not just the face
+
+                            params.faceBounds.top -= 300
+                            params.faceBounds.bottom += 300
+                            params.faceBounds.right += 300
+                            params.faceBounds.left -= 300
+                        }
+                    }
 
 //                    Toast.makeText(activity, "Saved: " + SAVE_FILE, Toast.LENGTH_LONG)
 //                    Log.d(LOG_TAG, "Results: " + session.toString() + " || " + request.toString())

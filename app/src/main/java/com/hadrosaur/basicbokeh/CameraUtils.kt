@@ -15,6 +15,9 @@ import com.hadrosaur.basicbokeh.MainActivity.Companion.ORIENTATIONS
 fun smallestFocalLength(focalLengths: FloatArray) : Float = focalLengths.min()
         ?: MainActivity.INVALID_FOCAL_LENGTH
 
+fun largestAperture(apertures: FloatArray) : Float = apertures.max()
+        ?: MainActivity.NO_APERTURE
+
 fun focalLengthMinDeltaFromNormal(focalLengths: FloatArray) : Float
         = focalLengths.minBy { Math.abs(it - MainActivity.NORMAL_FOCAL_LENGTH) } ?: Float.MAX_VALUE
 

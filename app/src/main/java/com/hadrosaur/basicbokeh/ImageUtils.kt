@@ -1,9 +1,8 @@
 package com.hadrosaur.basicbokeh
 
 import android.app.Activity
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.graphics.Matrix
+import android.content.res.Resources
+import android.graphics.*
 import android.media.Image
 import android.media.ImageReader
 import android.os.Environment
@@ -15,6 +14,11 @@ import com.hadrosaur.basicbokeh.MainActivity.Companion.LOG_TAG
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import android.provider.MediaStore
+import android.opengl.ETC1.getWidth
+import android.opengl.ETC1.getHeight
+
+
 
 
 class ImageAvailableListener(private val activity: Activity, internal var params: CameraParams) : ImageReader.OnImageAvailableListener {
@@ -25,12 +29,12 @@ class ImageAvailableListener(private val activity: Activity, internal var params
         val capturedImageRotation = getOrientation(params, rotation)
 
         Log.d(MainActivity.LOG_TAG, "ImageReader. Image is available, about to post.")
-        params.backgroundHandler?.post(ImageSaver(activity, reader.acquireNextImage(), params.capturedPhoto, capturedImageRotation, params.isFront))
+        params.backgroundHandler?.post(ImageSaver(activity, reader.acquireNextImage(), params.capturedPhoto, capturedImageRotation, params.isFront, params))
         Log.d(MainActivity.LOG_TAG, "ImageReader. Post has been set.")
     }
 }
 
-class ImageSaver internal constructor(private val activity: Activity, private val image: Image?, private val imageView: ImageView?, private val rotation: Int, private val flip: Boolean) : Runnable {
+class ImageSaver internal constructor(private val activity: Activity, private val image: Image?, private val imageView: ImageView?, private val rotation: Int, private val flip: Boolean, private val cameraParams: CameraParams) : Runnable {
 
     override fun run() {
         Log.d(LOG_TAG, "ImageSaver. ImageSaver is running.")
@@ -59,11 +63,13 @@ class ImageSaver internal constructor(private val activity: Activity, private va
 
         //Set the image view to be the saved image
         val imageBitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, null)
-        val rotatedImageBitmap = rotateBitmap(imageBitmap, rotation.toFloat())
+        val boxedBitmap = drawBox(activity, cameraParams, imageBitmap)
+        val rotatedImageBitmap = rotateBitmap(boxedBitmap, rotation.toFloat())
         val scaledBitmap = scaleBitmap(activity, rotatedImageBitmap, MainActivity.BLUR_SCALE_FACTOR)
-        var blurredImageBitmap = gaussianBlur(activity, scaledBitmap, MainActivity.GAUSSIAN_BLUR_RADIUS)
+        val sepiaBitmap = sepiaFilter(activity, scaledBitmap)
+        val blurredImageBitmap = gaussianBlur(activity, sepiaBitmap, MainActivity.GAUSSIAN_BLUR_RADIUS)
 
-        var finalBitmap = blurredImageBitmap
+        val finalBitmap = blurredImageBitmap
 
         //If front facing camera, flip the bitmap
 //        if (flip)
@@ -143,6 +149,34 @@ fun gaussianBlur(activity: Activity, bitmap: Bitmap, blurRadius: Float): Bitmap 
     allocationType.destroy()
     rs.destroy()
     return blurredBitmap
+}
+
+fun sepiaFilter(activity: Activity, bitmap: Bitmap): Bitmap {
+    val rs = RenderScript.create(activity)
+    val allocation = Allocation.createFromBitmap(rs, bitmap, Allocation.MipmapControl.MIPMAP_NONE,
+            Allocation.USAGE_SCRIPT)
+    val allocationType = allocation.type
+    val sepiaAllocation = Allocation.createTyped(rs, allocationType)
+    val sepiaBitmap = bitmap
+    val script = ScriptC_sepia(rs)
+
+    script.set_allocationIn(allocation)
+    script.set_allocationOut(sepiaAllocation);
+    script.set_script(script);
+    script.invoke_filter();
+    sepiaAllocation.copyTo(sepiaBitmap);
+
+    return sepiaBitmap
+}
+
+fun drawBox(activity: Activity, cameraParams: CameraParams, bitmap: Bitmap): Bitmap {
+    val bitmapBoxed = bitmap.copy(Bitmap.Config.ARGB_8888, true);
+    val canvas = Canvas(bitmapBoxed)
+    val paint = Paint()
+    paint.setColor(Color.GREEN)
+    canvas.drawBitmap(bitmap, 0f, 0f, null)
+    canvas.drawRect(cameraParams.faceBounds, paint)
+    return bitmapBoxed
 }
 
 fun horizontalFlip(activity: Activity, bitmap: Bitmap) : Bitmap {

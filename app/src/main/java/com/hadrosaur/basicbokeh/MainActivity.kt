@@ -53,23 +53,20 @@ class MainActivity : AppCompatActivity() {
                 val tempCameraParams = CameraParams().apply {
 
                     val cameraChars = manager.getCameraCharacteristics(cameraId)
-                    val front_facing = if (CameraCharacteristics.LENS_FACING_FRONT == cameraChars.get(CameraCharacteristics.LENS_FACING)) "Front facing" else "World facing"
-                    val has_flash = if (cameraChars.get(CameraCharacteristics.FLASH_INFO_AVAILABLE)) "Has flash" else "No flash"
-                    var has_multi = false
-                    var has_multi_string = "No"
-
-                    val multi_camera = cameraChars.get(CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES)
-                    for (i in multi_camera.indices) {
-                        if (CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES_LOGICAL_MULTI_CAMERA == multi_camera[i]) {
-                            has_multi = true
-                            has_multi_string = "Yes"
+                    val cameraCapabilities = cameraChars.get(CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES)
+                    for (i in cameraCapabilities.indices) {
+                        if (CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES_LOGICAL_MULTI_CAMERA == cameraCapabilities[i]) {
+                            hasMulti = true
+                        } else if (CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES_MANUAL_SENSOR == cameraCapabilities[i]) {
+                            hasManualControl = true
                         }
                     }
+
+
 
                     Log.d(LOG_TAG, "Camera " + cameraId + " of " + NUM_CAMERAS)
 
                     id = cameraId
-                    hasMulti = has_multi
                     isOpen = false
                     hasFlash = cameraChars.get(CameraCharacteristics.FLASH_INFO_AVAILABLE)
                     isFront = CameraCharacteristics.LENS_FACING_FRONT == cameraChars.get(CameraCharacteristics.LENS_FACING)
@@ -77,6 +74,19 @@ class MainActivity : AppCompatActivity() {
                     focalLengths = cameraChars.get(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS)
                     smallestFocalLength = smallestFocalLength(focalLengths)
                     minDeltaFromNormal = focalLengthMinDeltaFromNormal(focalLengths)
+
+                    apertures = cameraChars.get(CameraCharacteristics.LENS_INFO_AVAILABLE_APERTURES)
+                    largestAperture = largestAperture(apertures)
+                    minFocusDistance = cameraChars.get(CameraCharacteristics.LENS_INFO_MINIMUM_FOCUS_DISTANCE)
+
+                    for (aperture in apertures) {
+                        Log.d(LOG_TAG, "In " + id + " found aperture: " + aperture)
+                    }
+                    Log.d(LOG_TAG, "Largest aperture: " + largestAperture)
+
+                    if (hasManualControl) {
+                        Log.d(LOG_TAG, "Has Manual, minFocusDistance: " + minFocusDistance)
+                    }
 
                     effects = cameraChars.get(CameraCharacteristics.CONTROL_AVAILABLE_EFFECTS)
                     hasSepia = effects.contains(CameraMetadata.CONTROL_EFFECT_MODE_SEPIA)
@@ -222,10 +232,14 @@ class MainActivity : AppCompatActivity() {
 
 
     private fun stopBackgroundThread(params: CameraParams) {
-//        params.backgroundThread?.quitSafely()
-        params.backgroundThread?.quit()
-        params.backgroundThread = null
-        params.backgroundHandler = null
+        params.backgroundThread?.quitSafely()
+        try {
+            params.backgroundThread?.join()
+            params.backgroundThread = null
+            params.backgroundHandler = null
+        } catch (e: InterruptedException) {
+            Log.w(LOG_TAG, "Interrupted while shutting background thread down", e)
+        }
     }
 
     override fun onResume() {
@@ -262,6 +276,8 @@ class MainActivity : AppCompatActivity() {
         const val NORMAL_FOCAL_LENGTH: Float = 50f
         const val GAUSSIAN_BLUR_RADIUS: Float = 25f
         const val BLUR_SCALE_FACTOR: Float = 0.25f
+        const val NO_APERTURE: Float = 0f
+        const val FIXED_FOCUS_DISTANCE: Float = 0f
         val INVALID_FOCAL_LENGTH: Float = Float.MAX_VALUE
         var NUM_CAMERAS = 0
         var logicalCamId = ""
