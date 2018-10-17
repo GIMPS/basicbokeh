@@ -33,6 +33,7 @@ import kotlin.collections.HashMap
 class MainActivity : AppCompatActivity() {
 
     private val REQUEST_CAMERA_PERMISSION = 1
+    private val REQUEST_FILE_WRITE_PERMISSION = 2
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,165 +42,56 @@ class MainActivity : AppCompatActivity() {
         cameraParams = camViewModel.getCameraParams()
 
         if (checkCameraPermissions())
-            initializeCameras()
-    }
-
-    fun initializeCameras() {
-        val manager = getSystemService(CAMERA_SERVICE) as CameraManager
-        try {
-            NUM_CAMERAS = manager.cameraIdList.size
-
-            for (cameraId in manager.cameraIdList) {
-                val tempCameraParams = CameraParams().apply {
-
-                    val cameraChars = manager.getCameraCharacteristics(cameraId)
-                    val cameraCapabilities = cameraChars.get(CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES)
-                    for (i in cameraCapabilities.indices) {
-                        if (CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES_LOGICAL_MULTI_CAMERA == cameraCapabilities[i]) {
-                            hasMulti = true
-                        } else if (CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES_MANUAL_SENSOR == cameraCapabilities[i]) {
-                            hasManualControl = true
-                        }
-                    }
-
-
-
-                    Log.d(LOG_TAG, "Camera " + cameraId + " of " + NUM_CAMERAS)
-
-                    id = cameraId
-                    isOpen = false
-                    hasFlash = cameraChars.get(CameraCharacteristics.FLASH_INFO_AVAILABLE)
-                    isFront = CameraCharacteristics.LENS_FACING_FRONT == cameraChars.get(CameraCharacteristics.LENS_FACING)
-                    characteristics = cameraChars
-                    focalLengths = cameraChars.get(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS)
-                    smallestFocalLength = smallestFocalLength(focalLengths)
-                    minDeltaFromNormal = focalLengthMinDeltaFromNormal(focalLengths)
-
-                    apertures = cameraChars.get(CameraCharacteristics.LENS_INFO_AVAILABLE_APERTURES)
-                    largestAperture = largestAperture(apertures)
-                    minFocusDistance = cameraChars.get(CameraCharacteristics.LENS_INFO_MINIMUM_FOCUS_DISTANCE)
-
-                    for (aperture in apertures) {
-                        Log.d(LOG_TAG, "In " + id + " found aperture: " + aperture)
-                    }
-                    Log.d(LOG_TAG, "Largest aperture: " + largestAperture)
-
-                    if (hasManualControl) {
-                        Log.d(LOG_TAG, "Has Manual, minFocusDistance: " + minFocusDistance)
-                    }
-
-                    effects = cameraChars.get(CameraCharacteristics.CONTROL_AVAILABLE_EFFECTS)
-                    hasSepia = effects.contains(CameraMetadata.CONTROL_EFFECT_MODE_SEPIA)
-                    hasMono = effects.contains(CameraMetadata.CONTROL_EFFECT_MODE_MONO)
-
-                    if (hasSepia)
-                        Log.d(LOG_TAG, "WE HAVE Sepia!")
-                    if (hasMono)
-                        Log.d(LOG_TAG, "WE HAVE Mono!")
-
-                    capturedPhoto = imagePhoto
-
-                    cameraCallback = CameraStateCallback(this, this@MainActivity)
-                    captureCallback = CaptureSessionCallback(this@MainActivity, this)
-//                    textureListener = TextureListener(this,this@MainActivity)
-
-                    imageAvailableListener = ImageAvailableListener(this@MainActivity, this)
-
-                    if (Build.VERSION.SDK_INT >= 28) {
-                        physicalCameras = cameraChars.physicalCameraIds
-                    }
-
-                    val map = cameraChars.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
-                    if (map != null) {
-                        // For still image captures, we use the largest available size.
-                        val largest = Collections.max(
-                                Arrays.asList(*map.getOutputSizes(ImageFormat.JPEG)),
-                                CompareSizesByArea())
-
-                        Log.d(LOG_TAG, "Map is not null, setting image reader listener")
-                        imageReader = ImageReader.newInstance(largest.width, largest.height,
-                                ImageFormat.JPEG, /*maxImages*/3)
-                                imageReader?.setOnImageAvailableListener(
-                                        imageAvailableListener, backgroundHandler)
-                    } //if map != null
-                }
-                cameraParams.put(cameraId, tempCameraParams)
-            } //for all camera devices
-
-            //Default to using the first camera for everything
-            if (!cameraParams.keys.isEmpty()) {
-                logicalCamId = cameraParams.keys.first()
-                wideAngleId = logicalCamId
-                normalLensId = logicalCamId
-            }
-
-            //Determine the first multi-camera logical camera
-            //Then choose the shortest focal for the wide-angle background camera
-            //And closest to 50mm for the "normal lens"
-            for (tempCameraParams in cameraParams) {
-                if (tempCameraParams.value.hasMulti) {
-                    logicalCamId = tempCameraParams.key
-                    if(!tempCameraParams.value.physicalCameras.isEmpty()) {
-                        //Determine the widest angle lens
-                        wideAngleId = tempCameraParams.value.physicalCameras.first()
-                        for (physicalCamera in tempCameraParams.value.physicalCameras) {
-                            val tempLens: Float = cameraParams.get(physicalCamera)?.smallestFocalLength ?: MainActivity.INVALID_FOCAL_LENGTH
-                            val minLens: Float = cameraParams.get(wideAngleId)?.smallestFocalLength ?: MainActivity.INVALID_FOCAL_LENGTH
-                            if (tempLens < minLens)
-                                wideAngleId = physicalCamera
-                        }
-
-                        //Determine the closest to "normal" that is not the wide angle lens
-                        normalLensId = tempCameraParams.value.physicalCameras.first()
-                        for (physicalCamera in tempCameraParams.value.physicalCameras) {
-                            if (physicalCamera.equals(wideAngleId))
-                                continue
-
-                            val tempLens: Float = cameraParams.get(physicalCamera)?.minDeltaFromNormal ?: MainActivity.INVALID_FOCAL_LENGTH
-                            val normalLens: Float = cameraParams.get(normalLensId)?.minDeltaFromNormal ?: MainActivity.INVALID_FOCAL_LENGTH
-                            if (tempLens < normalLens)
-                                normalLensId = physicalCamera
-                        }
-                    }
-
-                    Log.d(LOG_TAG,"Found a multi: " + logicalCamId + " with wideAngle: " + wideAngleId + "(" + cameraParams.get(wideAngleId)?.smallestFocalLength
-                        + ") and normal: " + normalLensId + " (" + cameraParams.get(normalLensId)?.minDeltaFromNormal + ")")
-                    break //Use the first multi-camera
-                }
-            }
-
-            Log.d(LOG_TAG,"Setting logical: " + logicalCamId + " with wideAngle: " + wideAngleId + "(" + cameraParams.get(wideAngleId)?.smallestFocalLength
-                    + ") and normal: " + normalLensId + " (" + cameraParams.get(normalLensId)?.minDeltaFromNormal + ")")
-
-            cameraParams.get(wideAngleId)?.previewTextureView  = texture_background
-
-            // If no multi-camera, only open one stream
-            if (wideAngleId != normalLensId) {
-//                cameraParams.get(normalLensId)?.previewTextureView  = texture_foreground
-            }
-
-            //TODO: DYnamically blur preview, doing something like this: https://stackoverflow.com/questions/34972250/android-dynamically-blur-surface-with-video
-        } catch (accessError: CameraAccessException) {
-            accessError.printStackTrace()
-        }
+            initializeCameras(this)
 
         buttonTakePhoto.setOnClickListener {
-            cameraParams.get(wideAngleId).let {
-                if (it?.isOpen == true) {
-                    Log.d(LOG_TAG, "In onClick. Taking Photo on camera: " + wideAngleId)
-                    takePicture(this, it)
+            if (wideAngleId == normalLensId) {
+                twoLens.isTwoLensShot = false
+                MainActivity.cameraParams.get(wideAngleId).let {
+                    if (it?.isOpen == true) {
+                        MainActivity.Logd("In onClick. Taking Photo on wide-angle camera: " + wideAngleId)
+                        takePicture(this, it)
+                    }
+                }
+            } else {
+                twoLens.reset()
+                twoLens.isTwoLensShot = true
+                MainActivity.cameraParams.get(wideAngleId).let {
+                    if (it?.isOpen == true) {
+                        MainActivity.Logd("In onClick. Taking Photo on wide-angle camera: " + wideAngleId)
+                        takePicture(this, it)
+                    }
+                }
+                MainActivity.cameraParams.get(normalLensId).let {
+                    if (it?.isOpen == true) {
+                        MainActivity.Logd("In onClick. Taking Photo on normal-lens camera: " + normalLensId)
+                        takePicture(this, it)
+                    }
                 }
             }
         }
     }
 
-
     override fun onRequestPermissionsResult(requestCode: Int,
-                                   permissions: Array<String>, grantResults: IntArray) {
+                                            permissions: Array<String>, grantResults: IntArray) {
         when (requestCode) {
             REQUEST_CAMERA_PERMISSION -> {
                 if (grantResults.size > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    initializeCameras()
+                    //We now have permission, restart the app
+                    val intent = getIntent()
+                    finish()
+                    startActivity(intent)
+                } else {
+                }
+                return
+            }
+            REQUEST_FILE_WRITE_PERMISSION -> {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.size > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    //We now have permission, restart the app
+                    val intent = getIntent()
+                    finish()
+                    startActivity(intent)
                 } else {
                 }
                 return
@@ -216,9 +108,17 @@ class MainActivity : AppCompatActivity() {
                     arrayOf(Manifest.permission.CAMERA),
                     REQUEST_CAMERA_PERMISSION)
             return false
-        } else {
-            return true
+        } else if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                !== PackageManager.PERMISSION_GRANTED) {
+            // No explanation needed; request the permission
+            ActivityCompat.requestPermissions(this,
+                    arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
+                    REQUEST_FILE_WRITE_PERMISSION)
+            return false
+
         }
+
+        return true
     }
 
     private fun startBackgroundThread(params: CameraParams) {
@@ -238,19 +138,19 @@ class MainActivity : AppCompatActivity() {
             params.backgroundThread = null
             params.backgroundHandler = null
         } catch (e: InterruptedException) {
-            Log.w(LOG_TAG, "Interrupted while shutting background thread down", e)
+            Logd( "Interrupted while shutting background thread down: " + e.message)
         }
     }
 
     override fun onResume() {
         super.onResume()
-        Log.d(LOG_TAG, "In onResume")
+        Logd( "In onResume")
 
         for (tempCameraParams in cameraParams) {
             startBackgroundThread(tempCameraParams.value)
 
             if (tempCameraParams.value.previewTextureView?.isAvailable == true) {
-                openCamera(tempCameraParams.value, this)
+                camera2OpenCamera(this, tempCameraParams.value)
             } else {
                 tempCameraParams.value.previewTextureView?.surfaceTextureListener =
                         TextureListener(tempCameraParams.value, this)
@@ -286,6 +186,7 @@ class MainActivity : AppCompatActivity() {
 
         lateinit var camViewModel:CamViewModel
         lateinit var cameraParams: HashMap<String, CameraParams>
+        val twoLens: TwoLensCoordinator = TwoLensCoordinator()
 
         val ORIENTATIONS = SparseIntArray()
 
@@ -300,5 +201,11 @@ class MainActivity : AppCompatActivity() {
             ORIENTATIONS.append(Surface.ROTATION_180, 270)
             ORIENTATIONS.append(Surface.ROTATION_270, 180)
         }
+
+        fun Logd(message: String) {
+            if (camViewModel.getShouldOutputLog().value ?: true)
+                Log.d(LOG_TAG, message)
+        }
+
     }
 }

@@ -2,6 +2,7 @@ package com.hadrosaur.basicbokeh
 
 import android.util.Log
 import android.util.Size
+import com.hadrosaur.basicbokeh.MainActivity.Companion.Logd
 import java.util.*
 
 /**
@@ -34,7 +35,7 @@ internal fun chooseBigEnoughSize(choices: Array<Size>, width: Int, height: Int):
     if (bigEnough.size > 0) {
         return Collections.min(bigEnough, CompareSizesByArea())
     } else {
-        Log.e(MainActivity.LOG_TAG, "Couldn't find any suitable preview size")
+        Logd("Couldn't find any suitable preview size")
         return choices[0]
     }
 }

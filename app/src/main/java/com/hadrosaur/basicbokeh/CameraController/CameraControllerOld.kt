@@ -1,15 +1,4 @@
 /*
-Copyright 2018 Google LLC
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-     http://www.apache.org/licenses/LICENSE-2.0
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
 package com.hadrosaur.basicbokeh
 
 import android.app.Activity
@@ -28,8 +17,7 @@ import java.util.*
 import android.hardware.camera2.CameraAccessException
 import com.hadrosaur.basicbokeh.MainActivity.Companion.cameraParams
 import android.hardware.camera2.CaptureResult
-
-
+import com.hadrosaur.basicbokeh.MainActivity.Companion.Logd
 
 
 public val STATE_UNINITIALIZED = -1
@@ -54,6 +42,12 @@ private fun createCameraPreviewSession(activity: Activity, camera: CameraDevice,
         // Here, we create a CameraCaptureSession for camera preview.
         camera.createCaptureSession(Arrays.asList(surface, params.imageReader?.getSurface()),
                 object : CameraCaptureSession.StateCallback() {
+                    override fun onReady(session: CameraCaptureSession?) {
+                        //This may be the initial start or we may have cleared an in-progress capture and the pipeline is now clear
+                        Logd( "In onReady: CaptureSession Ready/All requests are done!")
+
+                        super.onReady(session)
+                    }
 
                     override fun onConfigured(@NonNull cameraCaptureSession: CameraCaptureSession) {
                         // When the session is ready, we start displaying the preview.
@@ -73,7 +67,7 @@ private fun createCameraPreviewSession(activity: Activity, camera: CameraDevice,
                                 params.previewBuilder?.set(CaptureRequest.CONTROL_EFFECT_MODE, CameraMetadata.CONTROL_EFFECT_MODE_MONO)
 
                             if (params.hasSepia)
-                                Log.d(LOG_TAG, "WE HAVE SEPIA, setting it!!")
+                                Logd( "WE HAVE SEPIA, setting it!!")
 
                             if (params.hasManualControl && params.minFocusDistance != MainActivity.FIXED_FOCUS_DISTANCE) {
                                 //Request largest aperture
@@ -92,15 +86,15 @@ private fun createCameraPreviewSession(activity: Activity, camera: CameraDevice,
                             params.captureSession = cameraCaptureSession
 
                         } catch (e: CameraAccessException) {
-                            Log.d(LOG_TAG, "Create Capture Session error: " + params.id)
+                            Logd( "Create Capture Session error: " + params.id)
                             e.printStackTrace()
                         }
                     }
 
                     override fun onConfigureFailed(
                             @NonNull cameraCaptureSession: CameraCaptureSession) {
-                        Log.d(LOG_TAG, "Camera preview initialization failed.")
-                        Log.d(LOG_TAG, "Trying again")
+                        Logd( "Camera preview initialization failed.")
+                        Logd( "Trying again")
                         createCameraPreviewSession(activity, camera, params)
                         //TODO: fix endless loop potential.
 
@@ -121,7 +115,7 @@ class CaptureSessionCallback(val activity: Activity, internal var params: Camera
             }// We have nothing to do when the camera preview is working normally.
             STATE_WAITING_LOCK -> {
                 val afState = result.get(CaptureResult.CONTROL_AF_STATE)
-                Log.d(LOG_TAG, "CaptureSessionCallback : STATE_WAITING_LOCK, afstate == " + afState)
+                Logd( "CaptureSessionCallback : STATE_WAITING_LOCK, afstate == " + afState)
 
                 if (afState == null || afState == 0) {
                     params.state = STATE_PICTURE_TAKEN
@@ -139,7 +133,7 @@ class CaptureSessionCallback(val activity: Activity, internal var params: Camera
                 }
             }
             STATE_WAITING_PRECAPTURE -> {
-                Log.d(LOG_TAG, "CaptureSessionCallback : STATE_WAITING_PRECAPTURE.")
+                Logd( "CaptureSessionCallback : STATE_WAITING_PRECAPTURE.")
                 // CONTROL_AE_STATE can be null on some devices
                 val aeState = result.get(CaptureResult.CONTROL_AE_STATE)
                 if (aeState == null ||
@@ -150,7 +144,7 @@ class CaptureSessionCallback(val activity: Activity, internal var params: Camera
                 }
             }
             STATE_WAITING_NON_PRECAPTURE -> {
-                Log.d(LOG_TAG, "CaptureSessionCallback : STATE_NON_PRECAPTURE.")
+                Logd( "CaptureSessionCallback : STATE_NON_PRECAPTURE.")
                 // CONTROL_AE_STATE can be null on some devices
                 val aeState = result.get(CaptureResult.CONTROL_AE_STATE)
                 if (aeState == null || aeState == 0 || aeState != CaptureResult.CONTROL_AE_STATE_PRECAPTURE) {
@@ -178,29 +172,29 @@ class CaptureSessionCallback(val activity: Activity, internal var params: Camera
 class CameraStateCallback(internal var params: CameraParams, internal var activity: Activity) : CameraDevice.StateCallback() {
 
     override fun onOpened(@NonNull cameraDevice: CameraDevice) {
-        Log.d(LOG_TAG, "In CameraStateCallback onOpened: " + cameraDevice.id)
+        Logd( "In CameraStateCallback onOpened: " + cameraDevice.id)
         params.isOpen = true
         createCameraPreviewSession(activity, cameraDevice, params)
 //        shutterControl(params.shutter, true)
     }
 
     override fun onDisconnected(@NonNull cameraDevice: CameraDevice) {
-        Log.d(LOG_TAG, "In CameraStateCallback onDisconnected: " + params.id)
+        Logd( "In CameraStateCallback onDisconnected: " + params.id)
         closeCamera(params, activity)
         cameraDevice.close()
     }
 
     override fun onError(@NonNull cameraDevice: CameraDevice, error: Int) {
-        Log.d(LOG_TAG, "In CameraStateCallback onError: " + cameraDevice.id + " and error: " + error)
+        Logd( "In CameraStateCallback onError: " + cameraDevice.id + " and error: " + error)
 
         if (CameraDevice.StateCallback.ERROR_MAX_CAMERAS_IN_USE == error) {
             //Let's try to close an open camera and re-open this one
-            Log.d(LOG_TAG, "In CameraStateCallback too many cameras open, closing one...")
+            Logd( "In CameraStateCallback too many cameras open, closing one...")
             closeACamera(activity)
             cameraDevice.close()
             openCamera(params, activity)
         } else if (CameraDevice.StateCallback.ERROR_CAMERA_DEVICE == error){
-            Log.d(LOG_TAG, "Fatal camera error, close and try to re-initialize...")
+            Logd( "Fatal camera error, close and try to re-initialize...")
             closeCamera(params, activity)
             cameraDevice.close()
             openCamera(params, activity)
@@ -217,14 +211,14 @@ fun openCamera(params: CameraParams?, activity: Activity) {
 
     val manager = activity.getSystemService(Context.CAMERA_SERVICE) as CameraManager
     try {
-        Log.d(LOG_TAG, "openCamera: " + params.id)
+        Logd( "openCamera: " + params.id)
 
         manager.openCamera(params.id, params.cameraCallback, params.backgroundHandler)
     } catch (e: CameraAccessException) {
-        Log.d(LOG_TAG, "openCamera CameraAccessException: " + params.id)
+        Logd( "openCamera CameraAccessException: " + params.id)
         e.printStackTrace()
     } catch (e: SecurityException) {
-        Log.d(LOG_TAG, "openCamera SecurityException: " + params.id)
+        Logd( "openCamera SecurityException: " + params.id)
         e.printStackTrace()
     }
 
@@ -234,10 +228,10 @@ fun openCamera(params: CameraParams?, activity: Activity) {
 //Close the first open camera we find
 fun closeACamera(activity: Activity) {
     var closedACamera = false
-    Log.d(LOG_TAG, "In closeACamera, looking for open camera.")
+    Logd( "In closeACamera, looking for open camera.")
     for (tempCameraParams: CameraParams in cameraParams.values) {
         if (tempCameraParams.isOpen) {
-            Log.d(LOG_TAG, "In closeACamera, found open camera, closing: " + tempCameraParams.id)
+            Logd( "In closeACamera, found open camera, closing: " + tempCameraParams.id)
             closedACamera = true
             closeCamera(tempCameraParams, activity)
             break
@@ -251,7 +245,7 @@ fun closeACamera(activity: Activity) {
 }
 
 fun closeAllCameras(activity: Activity) {
-    Log.d(LOG_TAG, "Closing all cameras.")
+    Logd( "Closing all cameras.")
     for (tempCameraParams: CameraParams in cameraParams.values) {
         closeCamera(tempCameraParams, activity)
     }
@@ -262,7 +256,7 @@ fun closeCamera(params: CameraParams?, activity: Activity) {
         return
 
     params.captureSession?.let {
-        Log.d(LOG_TAG, "closeCamera: " + params.id)
+        Logd( "closeCamera: " + params.id)
         params.isOpen = false
         it.close()
         it.getDevice().close()
@@ -272,22 +266,22 @@ fun closeCamera(params: CameraParams?, activity: Activity) {
 
 class TextureListener(internal var params: CameraParams, internal val activity: Activity): TextureView.SurfaceTextureListener {
     override fun onSurfaceTextureUpdated(p0: SurfaceTexture?) {
-//        Log.d(LOG_TAG, "In surfaceTextureUpdated. Id: " + params.id)
+//        Logd( "In surfaceTextureUpdated. Id: " + params.id)
 //        openCamera(params, activity)
     }
 
     override fun onSurfaceTextureAvailable(texture: SurfaceTexture, width: Int, height: Int) {
-        Log.d(LOG_TAG, "In surfaceTextureAvailable. Id: " + params.id)
+        Logd( "In surfaceTextureAvailable. Id: " + params.id)
         openCamera(params, activity)
     }
 
     override fun onSurfaceTextureSizeChanged(texture: SurfaceTexture, width: Int, height: Int) {
-        Log.d(LOG_TAG, "In surfaceTextureSizeChanged. Id: " + params.id)
+        Logd( "In surfaceTextureSizeChanged. Id: " + params.id)
         val info = params.characteristics
                 ?.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
 
- //       val largestSize = Collections.max(Arrays.asList(*info?.getOutputSizes(ImageFormat.JPEG)),
- //               CompareSizesByArea())
+        //       val largestSize = Collections.max(Arrays.asList(*info?.getOutputSizes(ImageFormat.JPEG)),
+        //               CompareSizesByArea())
 //        val optimalSize = chooseBigEnoughSize(
 //                info?.getOutputSizes(SurfaceHolder::class.java), width, height)
 //        params.previewTextureView.setFixedSize(optimalSize.width,
@@ -296,7 +290,7 @@ class TextureListener(internal var params: CameraParams, internal val activity: 
     }
 
     override fun onSurfaceTextureDestroyed(texture: SurfaceTexture) : Boolean {
-        Log.d(LOG_TAG, "In surfaceTextureDestroyed. Id: " + params.id)
+        Logd( "In surfaceTextureDestroyed. Id: " + params.id)
         closeCamera(params, activity)
         return true
     }
@@ -308,7 +302,7 @@ fun takePicture(activity: Activity, params: CameraParams) {
 
 fun lockFocus(activity: Activity, params: CameraParams) {
     try {
-        Log.d(LOG_TAG, "In lockFocus.")
+        Logd( "In lockFocus.")
 
         val camera = params.captureSession?.getDevice()
         if (null != camera) {
@@ -351,10 +345,13 @@ fun runPrecaptureSequence(activity: Activity, params: CameraParams) {
 
 fun captureStillPicture(activity: Activity, params: CameraParams) {
     try {
-        Log.d(LOG_TAG, "In captureStillPicture")
+        Logd( "In captureStillPicture")
 
         val camera = params.captureSession?.getDevice()
         if (null != camera) {
+            params.captureSession?.stopRepeating();
+//            params.captureSession?.abortCaptures();
+
             params.captureBuilder = camera.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE)
             setAutoFlash(activity, camera, params.captureBuilder)
             params.captureBuilder?.addTarget(params.imageReader?.getSurface())
@@ -386,36 +383,32 @@ fun captureStillPicture(activity: Activity, params: CameraParams) {
                     val mode = result.get(CaptureResult.STATISTICS_FACE_DETECT_MODE)
                     val faces = result.get(CaptureResult.STATISTICS_FACES)
                     if (faces != null && mode != null) {
-                        Log.d(LOG_TAG, "faces : " + faces.size + " , mode : " + mode)
+                        Logd( "faces : " + faces.size + " , mode : " + mode)
                         for (face in faces) {
                             val rect = face.bounds
-                            Log.d(LOG_TAG, "Bounds: bottom: " + rect.bottom + " left: " + rect.left + " right: " + rect.right + " top: " + rect.top)
+                            Logd( "Bounds: bottom: " + rect.bottom + " left: " + rect.left + " right: " + rect.right + " top: " + rect.top)
                         }
 
                         if (faces.size > 0) {
                             params.hasFace = true
                             params.faceBounds = faces.first().bounds
 //TODO                            expandBounds(faceBounds) //Include the whole head, not just the face
-                            expandBounds(faceBounds) //Include the whole head, not just the face
-
-                            params.faceBounds.top -= 300
-                            params.faceBounds.bottom += 300
-                            params.faceBounds.right += 300
-                            params.faceBounds.left -= 300
+                            params.faceBounds.top -= 400
+                            params.faceBounds.bottom += 400
+                            params.faceBounds.right += 400
+                            params.faceBounds.left -= 400
                         }
                     }
 
 //                    Toast.makeText(activity, "Saved: " + SAVE_FILE, Toast.LENGTH_LONG)
-//                    Log.d(LOG_TAG, "Results: " + session.toString() + " || " + request.toString())
-                            //                    Log.d(LOG_TAG, "Saved photo to file: " + file.toString() + result.partialResults.toString())
+//                    Logd( "Results: " + session.toString() + " || " + request.toString())
+                    //                    Logd( "Saved photo to file: " + file.toString() + result.partialResults.toString())
 
 
                     unlockFocus(activity, params);
                 }
             }
 
-            params.captureSession?.stopRepeating();
-            params.captureSession?.abortCaptures();
             params.captureSession?.capture(params.captureBuilder?.build(), CaptureCallback,
                     params.backgroundHandler)
         }
@@ -445,13 +438,4 @@ fun unlockFocus(activity: Activity, params: CameraParams) {
 }
 
 
-internal fun shutterControl(activity: Activity,shutter: View, openShutter: Boolean) {
-/*    activity.runOnUiThread {
-        if (openShutter)
-            shutter.visibility = View.INVISIBLE
-        else
-            shutter.visibility = View.VISIBLE
-    }
 */
-}
-

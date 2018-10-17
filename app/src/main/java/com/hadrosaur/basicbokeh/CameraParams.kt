@@ -3,12 +3,17 @@ package com.hadrosaur.basicbokeh
 import android.graphics.Rect
 import android.hardware.camera2.CameraCaptureSession
 import android.hardware.camera2.CameraCharacteristics
+import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CaptureRequest
 import android.media.ImageReader
 import android.os.Handler
 import android.os.HandlerThread
+import android.util.Size
 import android.view.TextureView
 import android.widget.ImageView
+import com.hadrosaur.basicbokeh.CameraController.CameraStateCallback
+import com.hadrosaur.basicbokeh.CameraController.FocusCaptureSessionCallback
+import com.hadrosaur.basicbokeh.CameraController.FocusCaptureSessionCallback.Companion.STATE_UNINITIALIZED
 import com.hadrosaur.basicbokeh.MainActivity.Companion.NO_APERTURE
 
 class CameraParams {
@@ -39,6 +44,9 @@ class CameraParams {
     internal var effects: IntArray = IntArray(0)
     internal var hasSepia: Boolean = false
     internal var hasMono: Boolean = false
+    internal var hasAF: Boolean = false
+
+    internal var bestFaceDetectionMode: Int = 0
 
     internal var previewBuilder: CaptureRequest.Builder? = null
     internal var captureBuilder: CaptureRequest.Builder? = null
@@ -46,8 +54,14 @@ class CameraParams {
     internal var captureSession: CameraCaptureSession? = null
     internal var cameraCallback: CameraStateCallback? = null
     internal var textureListener: TextureListener? = null
-    internal var captureCallback: CaptureSessionCallback? = null
+    internal var captureCallback: FocusCaptureSessionCallback? = null
     internal var imageAvailableListener: ImageAvailableListener? = null
+
+    //Camera2 min/max size
+    internal var minSize: Size = Size(0, 0)
+    internal var maxSize: Size = Size(0, 0)
+
+    internal var device: CameraDevice? = null
 
     internal var hasFace: Boolean = false
     internal var faceBounds: Rect = Rect(0,0,0,0)
