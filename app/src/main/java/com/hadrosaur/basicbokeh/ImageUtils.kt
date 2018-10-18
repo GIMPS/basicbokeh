@@ -26,6 +26,8 @@ import android.R.attr.left
 import android.graphics.Bitmap
 import android.R.attr.bottom
 import android.R.attr.right
+import android.content.Context
+import android.content.Intent
 import com.hadrosaur.basicbokeh.MainActivity.Companion.BLUR_SCALE_FACTOR
 import android.graphics.Shader
 import android.graphics.LinearGradient
@@ -33,6 +35,13 @@ import android.graphics.PorterDuff
 import android.graphics.PorterDuffXfermode
 import android.hardware.camera2.CameraMetadata
 import android.hardware.camera2.CaptureRequest
+import android.net.Uri
+import android.widget.Toast
+import com.hadrosaur.basicbokeh.MainActivity.Companion.twoLens
+import org.opencv.android.BaseLoaderCallback
+import org.opencv.android.LoaderCallbackInterface
+import org.opencv.android.OpenCVLoader
+import org.opencv.core.Mat
 
 
 class ImageAvailableListener(private val activity: MainActivity, internal var params: CameraParams) : ImageReader.OnImageAvailableListener {
@@ -47,23 +56,34 @@ class ImageAvailableListener(private val activity: MainActivity, internal var pa
 
         //It might be that we received the image first and we're still waiting for the face calculations
         if (MainActivity.twoLens.isTwoLensShot) {
-            if (MainActivity.wideAngleId == params.id) {
-                MainActivity.twoLens.wideImage = image
-                if (MainActivity.twoLens.wideShotDone)
-                    DoBokeh(MainActivity.twoLens)
-            }
-            if (MainActivity.normalLensId == params.id) {
-                MainActivity.twoLens.normalImage = image
-                if (MainActivity.twoLens.normalShotDone)
-                    DoBokeh(MainActivity.twoLens)
-            }
-        }
+            Logd("Image Received, dual lens shot.")
 
-        //Only process wideAngle for now
-        if (MainActivity.wideAngleId == params.id) {
-            params.backgroundHandler?.post(ImageSaver(activity, image, params.capturedPhoto, capturedImageRotation, params.isFront, params))
+            if (MainActivity.wideAngleId == params.id) {
+                twoLens.wideImage = image
+
+            } else if (MainActivity.normalLensId == params.id) {
+                twoLens.normalImage = image
+            }
+
+            if (twoLens.wideShotDone && twoLens.normalShotDone
+                    && null != twoLens.wideImage
+                    && null != twoLens.normalImage) {
+
+                val finalBitmap: Bitmap = DoBokeh(activity, twoLens)
+                setCapturedPhoto(activity, params.capturedPhoto, finalBitmap)
+
+                twoLens.normalImage?.close()
+                twoLens.wideImage?.close()
+            }
+
         } else {
-            image.close()
+            Logd("Image Received, NOT a dual lens shot.")
+            //Only process wideAngle for now
+            if (MainActivity.wideAngleId == params.id) {
+                params.backgroundHandler?.post(ImageSaver(activity, image, params.capturedPhoto, capturedImageRotation, params.isFront, params))
+            } else {
+                image.close()
+            }
         }
 
 //        Log.d(MainActivity.LOG_TAG, "ImageReader. Post has been set.")
@@ -128,7 +148,7 @@ class ImageSaver internal constructor(private val activity: MainActivity, privat
 
             //If front facing camera, flip the bitmap
             if (cameraParams.isFront)
-                finalBitmap = horizontalFlip(activity, finalBitmap)
+                finalBitmap = horizontalFlip(finalBitmap)
 
             //Set the image view to be the final
             setCapturedPhoto(activity, imageView, finalBitmap)
@@ -140,7 +160,7 @@ class ImageSaver internal constructor(private val activity: MainActivity, privat
 
             //If front facing camera, flip the bitmap
             if (cameraParams.isFront)
-                finalBitmap = horizontalFlip(activity, finalBitmap)
+                finalBitmap = horizontalFlip(finalBitmap)
 
             //Set the image view to be the final
             setCapturedPhoto(activity, imageView, finalBitmap)
@@ -176,27 +196,28 @@ class ImageSaver internal constructor(private val activity: MainActivity, privat
 //        setupImageReader(activity, cameraParams)
     }
 
-    fun rotateBitmap(original: Bitmap, degrees: Float): Bitmap {
-        /*        int width = original.getWidth();
-        int height = original.getHeight();
+}
 
-        Matrix matrix = new Matrix();
-        matrix.preRotate(degrees);
+fun rotateBitmap(original: Bitmap, degrees: Float): Bitmap {
+    /*        int width = original.getWidth();
+    int height = original.getHeight();
 
-        Bitmap rotatedBitmap = Bitmap.createBitmap(original, 0, 0, width, height, matrix, true);
-        Canvas canvas = new Canvas(rotatedBitmap);
-        canvas.drawBitmap(original, 5.0f, 0.0f, null);
+    Matrix matrix = new Matrix();
+    matrix.preRotate(degrees);
 
-        return rotatedBitmap;
-        */
-        val matrix = Matrix()
-        matrix.postRotate(degrees)
-        return Bitmap.createBitmap(original, 0, 0, original.width, original.height, matrix, true)
-    }
+    Bitmap rotatedBitmap = Bitmap.createBitmap(original, 0, 0, width, height, matrix, true);
+    Canvas canvas = new Canvas(rotatedBitmap);
+    canvas.drawBitmap(original, 5.0f, 0.0f, null);
 
-     fun setCapturedPhoto(activity: Activity, imageView: ImageView?, bitmap: Bitmap) {
-        activity.runOnUiThread { imageView?.setImageBitmap(bitmap) }
-    }
+    return rotatedBitmap;
+    */
+    val matrix = Matrix()
+    matrix.postRotate(degrees)
+    return Bitmap.createBitmap(original, 0, 0, original.width, original.height, matrix, true)
+}
+
+fun setCapturedPhoto(activity: Activity, imageView: ImageView?, bitmap: Bitmap) {
+    activity.runOnUiThread { imageView?.setImageBitmap(bitmap) }
 }
 
 fun scaleBitmap(activity: Activity, bitmap: Bitmap, scaleFactor: Float): Bitmap {
@@ -257,10 +278,29 @@ fun drawBox(activity: Activity, cameraParams: CameraParams, bitmap: Bitmap): Bit
     return bitmapBoxed
 }
 
-fun horizontalFlip(activity: Activity, bitmap: Bitmap) : Bitmap {
+fun horizontalFlip(bitmap: Bitmap) : Bitmap {
     val matrix = Matrix()
     matrix.preScale(-1.0f, 1.0f)
     return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+}
+
+fun cropMat(mat: Mat, cropFactor: Float) : Mat {
+    val cropRect: Rect = Rect(0, 0, mat.cols(), mat.rows())
+    Logd("In cropMat.  Left: " + cropRect.left + " Right: " + cropRect.right + " Top: " + cropRect.top + " Bottom: " + cropRect.bottom)
+    cropRect.inset(mat.cols() - (cropFactor * mat.cols()).toInt(), mat.rows() - (cropFactor * mat.rows()).toInt())
+
+    Logd("In cropMat after inset.  Left: " + cropRect.left + " Right: " + cropRect.right + " Top: " + cropRect.top + " Bottom: " + cropRect.bottom)
+
+    val cvRect: org.opencv.core.Rect = org.opencv.core.Rect(cropRect.left, cropRect.top, cropRect.width(), cropRect.height())
+    val croppedMat: Mat = Mat(mat, cvRect);
+
+    return croppedMat
+}
+
+fun cropBitmap(activity: Activity, bitmap: Bitmap, cropFactor: Float) : Bitmap {
+    val cropRect: Rect = Rect(0, 0, bitmap.width, bitmap.height)
+    cropRect.inset((cropFactor * bitmap.width).toInt(), (cropFactor * bitmap.height).toInt())
+    return cropBitmap(activity, bitmap, cropRect)
 }
 
 fun cropBitmap(activity: Activity, bitmap: Bitmap, rect: Rect) : Bitmap {
@@ -351,4 +391,105 @@ private fun setFramePaint(p: Paint, side: Int, width: Float, height: Float, bord
     }
 
     p.shader = LinearGradient(g1x, g1y, g2x, g2y, c1, c2, Shader.TileMode.CLAMP)
+}
+
+class OpenCVLoaderCallback(val context: Context) : BaseLoaderCallback(context) {
+    override fun onManagerConnected(status: Int) {
+        when (status) {
+            LoaderCallbackInterface.SUCCESS -> {
+                Logd("OpenCV loaded successfully")
+            }
+            else -> {
+                super.onManagerConnected(status);
+            }
+        }
+    }
+}
+
+fun WriteFile(activity: MainActivity, bitmap: Bitmap, name: String) {
+    val PHOTOS_DIR: String = "BasicBokeh"
+
+    val jpgFile = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM),
+            File.separatorChar + PHOTOS_DIR + File.separatorChar +
+                    name + ".jpg")
+
+    val photosDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM), PHOTOS_DIR)
+
+    if (!photosDir.exists()) {
+        val createSuccess = photosDir.mkdir()
+        if (!createSuccess) {
+            Toast.makeText(activity, "DCIM/" + PHOTOS_DIR + " creation failed.", Toast.LENGTH_SHORT).show()
+            Logd("Photo storage directory DCIM/" + PHOTOS_DIR + " creation failed!!")
+        } else {
+            Logd("Photo storage directory DCIM/" + PHOTOS_DIR + " did not exist. Created.")
+        }
+    }
+
+    var output: FileOutputStream? = null
+    try {
+        output = FileOutputStream(jpgFile)
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 90, output)
+    } catch (e: IOException) {
+        e.printStackTrace()
+    } finally {
+        if (null != output) {
+            try {
+                output.close()
+
+                //File is written, let media scanner know
+                val scannerIntent = Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE)
+                scannerIntent.data = Uri.fromFile(jpgFile)
+                activity.sendBroadcast(scannerIntent)
+
+            } catch (e: IOException) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    Logd("WriteFile: Completed.")
+}
+
+fun WriteFile(activity: MainActivity, bytes: ByteArray, name: String) {
+    val PHOTOS_DIR: String = "BasicBokeh"
+
+    val jpgFile = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM),
+            File.separatorChar + PHOTOS_DIR + File.separatorChar +
+                    name + ".jpg")
+
+    val photosDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM), PHOTOS_DIR)
+
+    if (!photosDir.exists()) {
+        val createSuccess = photosDir.mkdir()
+        if (!createSuccess) {
+            Toast.makeText(activity, "DCIM/" + PHOTOS_DIR + " creation failed.", Toast.LENGTH_SHORT).show()
+            Logd("Photo storage directory DCIM/" + PHOTOS_DIR + " creation failed!!")
+        } else {
+            Logd("Photo storage directory DCIM/" + PHOTOS_DIR + " did not exist. Created.")
+        }
+    }
+
+    var output: FileOutputStream? = null
+    try {
+        output = FileOutputStream(jpgFile)
+        output.write(bytes)
+    } catch (e: IOException) {
+        e.printStackTrace()
+    } finally {
+        if (null != output) {
+            try {
+                output.close()
+
+                    //File is written, let media scanner know
+                    val scannerIntent = Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE)
+                    scannerIntent.data = Uri.fromFile(jpgFile)
+                    activity.sendBroadcast(scannerIntent)
+
+            } catch (e: IOException) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    Logd("WriteFile: Completed.")
 }

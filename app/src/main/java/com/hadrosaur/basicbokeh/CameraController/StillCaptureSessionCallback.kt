@@ -1,5 +1,6 @@
 package com.hadrosaur.basicbokeh.CameraController
 
+import android.graphics.Bitmap
 import android.hardware.camera2.*
 import android.view.Surface
 import androidx.annotation.NonNull
@@ -97,14 +98,21 @@ class StillCaptureSessionCallback(val activity: MainActivity, val params: Camera
             if (wideAngleId == params.id) {
                 twoLens.wideShotDone = true
                 twoLens.wideParams = params
-                if (twoLens.wideImage != null)
-                    DoBokeh(twoLens)
             }
             if (normalLensId == params.id) {
                 twoLens.normalShotDone = true
                 twoLens.normalParams = params
-                if (twoLens.normalImage != null)
-                    DoBokeh(twoLens)
+            }
+
+            if (twoLens.wideShotDone && twoLens.normalShotDone
+                    && null != twoLens.wideImage
+                    && null != twoLens.normalImage) {
+
+                val finalBitmap: Bitmap = DoBokeh(activity, twoLens)
+                setCapturedPhoto(activity, params.capturedPhoto, finalBitmap)
+
+                twoLens.normalImage?.close()
+                twoLens.wideImage?.close()
             }
         }
 

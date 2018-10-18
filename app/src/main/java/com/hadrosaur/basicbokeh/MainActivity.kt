@@ -25,6 +25,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProviders
 import kotlinx.android.synthetic.main.activity_main.*
+import org.opencv.android.OpenCVLoader
 import java.io.File
 import java.util.*
 import kotlin.collections.HashMap
@@ -38,8 +39,17 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
         camViewModel = ViewModelProviders.of(this).get(CamViewModel::class.java)
         cameraParams = camViewModel.getCameraParams()
+
+        //Load OpenCV for Bokeh effects
+        if (!OpenCVLoader.initDebug()) {
+            Logd("OpenCV failed to load!")
+        } else {
+            Logd("OpenCV loaded successfully!")
+        }
+
 
         if (checkCameraPermissions())
             initializeCameras(this)
