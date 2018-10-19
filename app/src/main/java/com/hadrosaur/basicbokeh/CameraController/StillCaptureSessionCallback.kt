@@ -75,6 +75,9 @@ class StillCaptureSessionCallback(val activity: MainActivity, val params: Camera
 
         val mode = result.get(CaptureResult.STATISTICS_FACE_DETECT_MODE)
         val faces = result.get(CaptureResult.STATISTICS_FACES)
+
+//        MainActivity.Logd("FACE-DETECT DEBUG: in onCaptureCompleted. CaptureResult.STATISTICS_FACE_DETECT_MODE is: " + mode)
+
         if (faces != null && mode != null) {
             MainActivity.Logd("faces : " + faces.size + " , mode : " + mode)
             for (face in faces) {

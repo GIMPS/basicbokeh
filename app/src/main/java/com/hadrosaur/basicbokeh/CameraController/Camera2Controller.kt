@@ -15,6 +15,7 @@ import android.view.TextureView
 import com.hadrosaur.basicbokeh.CameraController.CameraStateCallback
 import com.hadrosaur.basicbokeh.CameraController.FocusCaptureSessionCallback
 import com.hadrosaur.basicbokeh.CameraController.FocusCaptureSessionCallback.Companion.STATE_PICTURE_TAKEN
+import com.hadrosaur.basicbokeh.CameraController.FocusCaptureSessionCallback.Companion.STATE_WAITING_LOCK
 import com.hadrosaur.basicbokeh.CameraController.FocusCaptureSessionCallback.Companion.STATE_WAITING_PRECAPTURE
 import com.hadrosaur.basicbokeh.CameraController.PreviewSessionStateCallback
 import com.hadrosaur.basicbokeh.CameraController.StillCaptureSessionCallback
@@ -188,8 +189,8 @@ fun lockFocus(activity: MainActivity, params: CameraParams) {
             //If this lens can focus, we need to start a focus search and wait for focus lock
             if (params.hasAF) {
                 Logd("In lockFocus. About to request focus lock and call capture.")
-                params.captureBuilder?.set(CaptureRequest.CONTROL_AF_TRIGGER,
-                        CameraMetadata.CONTROL_AF_TRIGGER_START);
+//                params.captureBuilder?.set(CaptureRequest.CONTROL_AF_TRIGGER,
+//                        CameraMetadata.CONTROL_AF_TRIGGER_START);
 //                params.captureBuilder?.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_AUTO)
                 params.captureBuilder?.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE)
                 params.state = STATE_PICTURE_TAKEN
@@ -250,6 +251,7 @@ fun captureStillPicture(activity: MainActivity, params: CameraParams) {
 
         if (null != camera) {
             params.captureBuilder = camera.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE)
+            params.captureBuilder?.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE)
             setAutoFlash(activity, camera, params.captureBuilder)
             params.captureBuilder?.addTarget(params.imageReader?.getSurface())
 
@@ -272,10 +274,13 @@ fun captureStillPicture(activity: MainActivity, params: CameraParams) {
 
             //This is REQUIRED for face detect - even though Pixel 3 doesn't have sepia
             params.captureBuilder?.set(CaptureRequest.CONTROL_EFFECT_MODE, CameraMetadata.CONTROL_EFFECT_MODE_SEPIA)
+            Logd("DUAL CAM DEBUG: I am setting sepia mode.")
+//            Logd("DUAL CAM DEBUG: I am NOT setting sepia mode.")
 
             // Request face detection
             if (CameraMetadata.STATISTICS_FACE_DETECT_MODE_OFF != params.bestFaceDetectionMode)
                 params.captureBuilder?.set(CaptureRequest.STATISTICS_FACE_DETECT_MODE, params.bestFaceDetectionMode)
+//            Logd("FACE-DETECT DEBUG: I am setting face-detect mode to: " + params.bestFaceDetectionMode)
 
             // Orientation
             val rotation = activity.getWindowManager().getDefaultDisplay().getRotation()
