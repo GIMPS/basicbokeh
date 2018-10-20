@@ -7,6 +7,8 @@ import android.os.Build
 import com.hadrosaur.basicbokeh.MainActivity.Companion.Logd
 import org.opencv.android.Utils
 import org.opencv.calib3d.Calib3d
+import org.opencv.calib3d.Calib3d.CALIB_ZERO_DISPARITY
+import org.opencv.calib3d.Calib3d.stereoRectify
 import org.opencv.calib3d.StereoBM
 import org.opencv.calib3d.StereoSGBM
 import org.opencv.core.CvType.*
@@ -14,6 +16,7 @@ import org.opencv.core.Mat
 import org.opencv.core.Scalar
 import org.opencv.imgcodecs.Imgcodecs
 import org.opencv.imgproc.Imgproc
+import org.opencv.imgproc.Imgproc.*
 import java.io.FileOutputStream
 import java.io.IOException
 import java.nio.ByteBuffer
@@ -136,20 +139,58 @@ fun DoBokeh(activity: MainActivity, twoLens: TwoLensCoordinator) : Bitmap {
 
 
         //TODO PLUG IN!!
-/*
+
         //Stereo rectify
-        Mat R, T, R1, P1, R2, P2;
-        fs["R"] >> R;
-        fs["T"] >> T;
-        stereoRectify( M1, D1, M2, D2, img_size, R, T, R1, R2, P1, P2, Q, CALIB_ZERO_DISPARITY, -1, img_size, &roi1, &roi2 );
+        val R1: Mat = Mat(3, 3, CV_64F)
+        val R2: Mat = Mat(3, 3, CV_64F)
+        val P1: Mat = Mat(3, 4, CV_64F)
+        val P2: Mat = Mat(3, 4, CV_64F)
+        val Q: Mat = Mat(4, 4, CV_64F)
+//        val R1: Mat = Mat()
+//        val R2: Mat = Mat()
+//        val P1: Mat = Mat()
+//        val P2: Mat = Mat()
+//        val Q: Mat = Mat()
 
-        Mat map11, map12, map21, map22;
-        initUndistortRectifyMap(M1, D1, R1, P1, img_size, CV_16SC2, map11, map12);
-        initUndistortRectifyMap(M2, D2, R2, P2, img_size, CV_16SC2, map21, map22);
+        Logd("Types for StereoRectify: "
+                + camMatrixNormal.type() + ", "
+                + distCoeffNormal.type() + ", "
+                + camMatrixWide.type() + ", "
+                + distCoeffWide.type() + ", "
+                + poseRotationWide.type() + ", "
+                + poseTranslationWide.type() + ", "
+                + R1.type() + ", "
+                + R2.type() + ", "
+                + P1.type() + ", "
+                + P2.type() + ", "
+                + Q.type())
+/*
+        stereoRectify( camMatrixNormal, distCoeffNormal, camMatrixWide, distCoeffWide,
+                finalNormalMat.size(), poseRotationWide, poseTranslationWide, R1, R2, P1, P2, Q,
+                CALIB_ZERO_DISPARITY, -1.0)
 
-        Mat img1r, img2r;
-        remap(img1, img1r, map11, map12, INTER_LINEAR);
-        remap(img2, img2r, map21, map22, INTER_LINEAR);
+        val mapNormal1: Mat = Mat()
+        val mapNormal2: Mat = Mat()
+        val mapWide1: Mat = Mat()
+        val mapWide2: Mat = Mat()
+
+        initUndistortRectifyMap(camMatrixNormal, distCoeffNormal, R1, P1, finalNormalMat.size(), CV_32FC1, mapNormal1, mapNormal2);
+        initUndistortRectifyMap(camMatrixWide, distCoeffWide, R2, P2, finalNormalMat.size(), CV_32FC1, mapWide1, mapWide2);
+
+        val rectifiedNormalMat: Mat = Mat(finalNormalMat.rows(), finalNormalMat.cols(), CV_8UC1)
+        val rectifiedWideMat: Mat = Mat(finalNormalMat.rows(), finalNormalMat.cols(), CV_8UC1)
+
+        remap(resizedNormalMat, rectifiedNormalMat, mapNormal1, mapNormal2, INTER_LINEAR);
+        remap(croppedWideMat, rectifiedWideMat, mapWide1, mapWide2, INTER_LINEAR);
+
+        Logd( "Now saving rectified photos to disk.")
+        val rectifiedNormalBitmap: Bitmap = Bitmap.createBitmap(rectifiedNormalMat.cols(), rectifiedNormalMat.rows(), Bitmap.Config.ARGB_8888)
+        Utils.matToBitmap(rectifiedNormalMat, rectifiedNormalBitmap)
+        val rectifiedWideBitmap: Bitmap = Bitmap.createBitmap(rectifiedWideMat.cols(), rectifiedWideMat.rows(), Bitmap.Config.ARGB_8888)
+        Utils.matToBitmap(rectifiedWideMat, rectifiedWideBitmap)
+
+        WriteFile(activity, rectifiedWideBitmap,"RectifiedWideShot")
+        WriteFile(activity, rectifiedNormalBitmap, "RectifiedNormalShot")
 */
     }
 
