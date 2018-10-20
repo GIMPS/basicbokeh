@@ -48,6 +48,12 @@ class CameraParams {
 
     internal var bestFaceDetectionMode: Int = 0
 
+    //Bokeh calculations
+    internal var lensDistortion: FloatArray = FloatArray(0)
+    internal var intrinsicCalibration: FloatArray = FloatArray(0)
+    internal var poseRotation: FloatArray = FloatArray(0)
+    internal var poseTranslation: FloatArray = FloatArray(0)
+
     internal var previewBuilder: CaptureRequest.Builder? = null
     internal var captureBuilder: CaptureRequest.Builder? = null
 

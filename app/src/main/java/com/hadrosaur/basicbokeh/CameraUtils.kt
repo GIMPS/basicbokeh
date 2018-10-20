@@ -56,6 +56,14 @@ fun initializeCameras(activity: MainActivity) {
                 largestAperture = largestAperture(apertures)
                 minFocusDistance = cameraChars.get(CameraCharacteristics.LENS_INFO_MINIMUM_FOCUS_DISTANCE)
 
+                //Bokeh calculations
+                if (Build.VERSION.SDK_INT >= 28) {
+                    lensDistortion = cameraChars.get(CameraCharacteristics.LENS_DISTORTION)
+                    intrinsicCalibration = cameraChars.get(CameraCharacteristics.LENS_INTRINSIC_CALIBRATION)
+                    poseRotation = cameraChars.get(CameraCharacteristics.LENS_POSE_ROTATION)
+                    poseTranslation = cameraChars.get(CameraCharacteristics.LENS_POSE_TRANSLATION)
+                }
+
                 for (focalLength in focalLengths) {
                     MainActivity.Logd("In " + id + " found focalLength: " + focalLength)
                 }
