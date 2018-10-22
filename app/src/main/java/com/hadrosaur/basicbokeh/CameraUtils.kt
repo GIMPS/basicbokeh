@@ -32,14 +32,12 @@ fun initializeCameras(activity: MainActivity) {
                 val cameraChars = manager.getCameraCharacteristics(cameraId)
                 val cameraCapabilities = cameraChars.get(CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES)
                 for (capability in cameraCapabilities) {
-                    if (capability == CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES_LOGICAL_MULTI_CAMERA) {
-                        hasMulti = true
-                    } else if (capability == CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES_MANUAL_SENSOR) {
-                        hasManualControl = true
+                    when (capability) {
+                        CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES_LOGICAL_MULTI_CAMERA -> hasMulti = true
+                        CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES_MANUAL_SENSOR -> hasManualControl = true
+                        CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES_DEPTH_OUTPUT -> hasDepth = true
                     }
                 }
-
-
 
                 MainActivity.Logd("Camera " + cameraId + " of " + MainActivity.NUM_CAMERAS)
 
@@ -97,6 +95,9 @@ fun initializeCameras(activity: MainActivity) {
                     bestFaceDetectionMode = mode //assume array is assorted ascending
                 }
 
+                if (hasDepth)
+                    Logd("This camera has depth output!")
+
                 capturedPhoto = activity.imagePhoto
 
                 cameraCallback = CameraStateCallback(this, activity)
@@ -130,7 +131,15 @@ fun initializeCameras(activity: MainActivity) {
             MainActivity.normalLensId = MainActivity.logicalCamId
         }
 
-        //Determine the first multi-camera logical camera
+        //Next, if we have a front-facing camera, use the first one
+        for (tempCameraParams in MainActivity.cameraParams) {
+            if (tempCameraParams.value.isFront) {
+                MainActivity.wideAngleId = tempCameraParams.value.id ?: MainActivity.cameraParams.keys.first()
+                MainActivity.normalLensId = MainActivity.wideAngleId
+            }
+        }
+
+        //Determine the first multi-camera logical camera (front or back)
         //Then choose the shortest focal for the wide-angle background camera
         //And closest to 50mm for the "normal lens"
         for (tempCameraParams in MainActivity.cameraParams) {

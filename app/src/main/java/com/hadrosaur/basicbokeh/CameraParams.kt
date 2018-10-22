@@ -53,6 +53,7 @@ class CameraParams {
     internal var intrinsicCalibration: FloatArray = FloatArray(0)
     internal var poseRotation: FloatArray = FloatArray(0)
     internal var poseTranslation: FloatArray = FloatArray(0)
+    internal var hasDepth: Boolean = false
 
     internal var previewBuilder: CaptureRequest.Builder? = null
     internal var captureBuilder: CaptureRequest.Builder? = null

@@ -7,8 +7,7 @@ import android.os.Build
 import com.hadrosaur.basicbokeh.MainActivity.Companion.Logd
 import org.opencv.android.Utils
 import org.opencv.calib3d.Calib3d
-import org.opencv.calib3d.Calib3d.CALIB_ZERO_DISPARITY
-import org.opencv.calib3d.Calib3d.stereoRectify
+import org.opencv.calib3d.Calib3d.*
 import org.opencv.calib3d.StereoBM
 import org.opencv.calib3d.StereoSGBM
 import org.opencv.core.CvType.*
@@ -44,7 +43,7 @@ fun DoBokeh(activity: MainActivity, twoLens: TwoLensCoordinator) : Bitmap {
 
     //Crop the wide angle shot so that has the same frame of view as the normal shot, ignoring distortion
 //    val scaleFactor: Float = twoLens.wideParams.smallestFocalLength / twoLens.normalParams.smallestFocalLength
-    val scaleFactor = 0.84f
+    val scaleFactor = 0.83f
     val croppedWideMat = cropMat(wideMat, scaleFactor)
 
     val normalMat: Mat = Mat(twoLens.normalImage!!.height, twoLens.normalImage!!.width, CV_8UC1)
@@ -76,69 +75,37 @@ fun DoBokeh(activity: MainActivity, twoLens: TwoLensCoordinator) : Bitmap {
 
 
     //Convert the Mats to 1-channel greyscale so we can compute depth maps
-    val finalNormalMat: Mat = Mat(resizedNormalMat.rows(), resizedNormalMat.cols(), CV_8UC1)
+    var finalNormalMat: Mat = Mat(resizedNormalMat.rows(), resizedNormalMat.cols(), CV_8UC1)
     Imgproc.cvtColor(resizedNormalMat, finalNormalMat, Imgproc.COLOR_BGR2GRAY)
+//    var finalNormalMat: Mat = Mat(normalMat.rows(), normalMat.cols(), CV_8UC1)
+//    Imgproc.cvtColor(normalMat, finalNormalMat, Imgproc.COLOR_BGR2GRAY)
 
-    val finalWideMat: Mat = Mat(croppedWideMat.rows(), croppedWideMat.cols(), CV_8UC1)
+    var finalWideMat: Mat = Mat(croppedWideMat.rows(), croppedWideMat.cols(), CV_8UC1)
     Imgproc.cvtColor(croppedWideMat, finalWideMat, Imgproc.COLOR_BGR2GRAY)
+//    var finalWideMat: Mat = Mat(wideMat.rows(), wideMat.cols(), CV_8UC1)
+//    Imgproc.cvtColor(wideMat, finalWideMat, Imgproc.COLOR_BGR2GRAY)
 
     Logd("Type, normal: " + finalNormalMat.type() + " and wide: " + finalWideMat.type() + "ref: " + CV_8UC1 + " or " + CV_8UC3 + " or " + CV_8UC4)
 
-    /* REF Code:
-    numberOfDisparities = numberOfDisparities > 0 ? numberOfDisparities : ((img_size.width/8) + 15) & -16;
-
-    bm->setROI1(roi1);
-    bm->setROI2(roi2);
-    bm->setPreFilterCap(31);
-    bm->setBlockSize(SADWindowSize > 0 ? SADWindowSize : 9);
-    bm->setMinDisparity(0);
-    bm->setNumDisparities(numberOfDisparities);
-    bm->setTextureThreshold(10);
-    bm->setUniquenessRatio(15);
-    bm->setSpeckleWindowSize(100);
-    bm->setSpeckleRange(32);
-    bm->setDisp12MaxDiff(1);
-
-    sgbm->setPreFilterCap(63);
-    int sgbmWinSize = SADWindowSize > 0 ? SADWindowSize : 3;
-    sgbm->setBlockSize(sgbmWinSize);
-
-    int cn = img1.channels();
-
-    sgbm->setP1(8*cn*sgbmWinSize*sgbmWinSize);
-    sgbm->setP2(32*cn*sgbmWinSize*sgbmWinSize);
-    sgbm->setMinDisparity(0);
-    sgbm->setNumDisparities(numberOfDisparities);
-    sgbm->setUniquenessRatio(10);
-    sgbm->setSpeckleWindowSize(100);
-    sgbm->setSpeckleRange(32);
-    sgbm->setDisp12MaxDiff(1);
-    if(alg==STEREO_HH)
-        sgbm->setMode(StereoSGBM::MODE_HH);
-    else if(alg==STEREO_SGBM)
-        sgbm->setMode(StereoSGBM::MODE_SGBM);
-    else if(alg==STEREO_3WAY)
-        sgbm->setMode(StereoSGBM::MODE_SGBM_3WAY);
-
-     */
-
-    //Get camera matricies
-    //If we are < 28, just use the images, even though depth map will be wonkified
+/*    //Get camera matricies
+    //If we are >= 28, rectify images to get a good depth map.
     if (Build.VERSION.SDK_INT >= 28) {
 
+//        val camMatrixNormal: Mat = Mat(3, 3, CV_64F, cameraMatrixFromCalibration(floatArrayOf(3264.0f, 2448.0f, 2448.0f, 3264.0f, 0.0f)))
         val camMatrixNormal: Mat = Mat(3, 3, CV_64F, cameraMatrixFromCalibration(twoLens.normalParams.intrinsicCalibration))
         val camMatrixWide: Mat = Mat(3, 3, CV_64F, cameraMatrixFromCalibration(twoLens.wideParams.intrinsicCalibration))
+//        val camMatrixWide = camMatrixNormal
 
         val distCoeffNormal: Mat = Mat(5, 1, CV_64F, Scalar(floatArraytoDoubleArray(twoLens.normalParams.lensDistortion)))
         val distCoeffWide: Mat = Mat(5, 1, CV_64F, Scalar(floatArraytoDoubleArray(twoLens.wideParams.lensDistortion)))
+//        val distCoeffWide: Mat = Mat(5, 1, CV_64F, Scalar(floatArraytoDoubleArray(floatArrayOf(0.0f, 0.0f, 0.0f, 0.0f, 0.0f))))
 
         val poseRotationNormal: Mat = Mat(3, 3, CV_64F, rotationMatrixFromQuaternion(twoLens.normalParams.poseRotation))
-        val poseRotationWide: Mat = Mat(3, 3, CV_64F, rotationMatrixFromQuaternion(twoLens.wideParams.poseRotation))
+//        val poseRotationNormal: Mat = Mat(3, 3, CV_64F, rotationMatrixFromQuaternion(floatArrayOf(0.0f, 0.0f, 0.0f, 1.0f)))
+        //val poseRotationWide: Mat = Mat(3, 3, CV_64F, rotationMatrixFromQuaternion(twoLens.wideParams.poseRotation))
+// val poseTranslationNormal: Mat = Mat(3, 1, CV_64F, Scalar(doubleArrayOf(0.04, 0.04, 0.0)))
         val poseTranslationNormal: Mat = Mat(3, 1, CV_64F, Scalar(floatArraytoDoubleArray(twoLens.normalParams.poseTranslation)))
-        val poseTranslationWide: Mat = Mat(3, 1, CV_64F, Scalar(floatArraytoDoubleArray(twoLens.wideParams.poseTranslation)))
-
-
-        //TODO PLUG IN!!
+//        val poseTranslationWide: Mat = Mat(3, 1, CV_64F, Scalar(floatArraytoDoubleArray(twoLens.wideParams.poseTranslation)))
 
         //Stereo rectify
         val R1: Mat = Mat(3, 3, CV_64F)
@@ -152,21 +119,9 @@ fun DoBokeh(activity: MainActivity, twoLens: TwoLensCoordinator) : Bitmap {
 //        val P2: Mat = Mat()
 //        val Q: Mat = Mat()
 
-        Logd("Types for StereoRectify: "
-                + camMatrixNormal.type() + ", "
-                + distCoeffNormal.type() + ", "
-                + camMatrixWide.type() + ", "
-                + distCoeffWide.type() + ", "
-                + poseRotationWide.type() + ", "
-                + poseTranslationWide.type() + ", "
-                + R1.type() + ", "
-                + R2.type() + ", "
-                + P1.type() + ", "
-                + P2.type() + ", "
-                + Q.type())
-/*
-        stereoRectify( camMatrixNormal, distCoeffNormal, camMatrixWide, distCoeffWide,
-                finalNormalMat.size(), poseRotationWide, poseTranslationWide, R1, R2, P1, P2, Q,
+        //Camera 1 = Wide, Camera 2 = Normal
+        stereoRectify( camMatrixWide, distCoeffWide, camMatrixNormal, distCoeffNormal,
+                finalNormalMat.size(), poseRotationNormal, poseTranslationNormal, R1, R2, P1, P2, Q,
                 CALIB_ZERO_DISPARITY, -1.0)
 
         val mapNormal1: Mat = Mat()
@@ -174,14 +129,14 @@ fun DoBokeh(activity: MainActivity, twoLens: TwoLensCoordinator) : Bitmap {
         val mapWide1: Mat = Mat()
         val mapWide2: Mat = Mat()
 
-        initUndistortRectifyMap(camMatrixNormal, distCoeffNormal, R1, P1, finalNormalMat.size(), CV_32FC1, mapNormal1, mapNormal2);
-        initUndistortRectifyMap(camMatrixWide, distCoeffWide, R2, P2, finalNormalMat.size(), CV_32FC1, mapWide1, mapWide2);
+        initUndistortRectifyMap(camMatrixNormal, distCoeffNormal, R2, P2, finalNormalMat.size(), CV_32FC1, mapNormal1, mapNormal2);
+        initUndistortRectifyMap(camMatrixWide, distCoeffWide, R1, P1, finalWideMat.size(), CV_32FC1, mapWide1, mapWide2);
 
         val rectifiedNormalMat: Mat = Mat(finalNormalMat.rows(), finalNormalMat.cols(), CV_8UC1)
         val rectifiedWideMat: Mat = Mat(finalNormalMat.rows(), finalNormalMat.cols(), CV_8UC1)
 
-        remap(resizedNormalMat, rectifiedNormalMat, mapNormal1, mapNormal2, INTER_LINEAR);
-        remap(croppedWideMat, rectifiedWideMat, mapWide1, mapWide2, INTER_LINEAR);
+        remap(finalNormalMat, rectifiedNormalMat, mapNormal1, mapNormal2, INTER_LINEAR);
+        remap(finalWideMat, rectifiedWideMat, mapWide1, mapWide2, INTER_LINEAR);
 
         Logd( "Now saving rectified photos to disk.")
         val rectifiedNormalBitmap: Bitmap = Bitmap.createBitmap(rectifiedNormalMat.cols(), rectifiedNormalMat.rows(), Bitmap.Config.ARGB_8888)
@@ -191,9 +146,12 @@ fun DoBokeh(activity: MainActivity, twoLens: TwoLensCoordinator) : Bitmap {
 
         WriteFile(activity, rectifiedWideBitmap,"RectifiedWideShot")
         WriteFile(activity, rectifiedNormalBitmap, "RectifiedNormalShot")
-*/
-    }
 
+
+        finalNormalMat = rectifiedNormalMat
+        finalWideMat = rectifiedWideMat
+    }
+*/
 
 
 
@@ -231,9 +189,12 @@ fun DoBokeh(activity: MainActivity, twoLens: TwoLensCoordinator) : Bitmap {
 
 fun floatArraytoDoubleArray(fArray: FloatArray) : DoubleArray {
     val dArray: DoubleArray = DoubleArray(fArray.size)
-    for ((index, float) in fArray.withIndex())
+    Logd("floatArraytoDouble: START")
+    for ((index, float) in fArray.withIndex()) {
         dArray.set(index, float.toDouble())
-
+        Logd("floatArraytoDouble, val: " + float.toDouble())
+    }
+    Logd("floatArraytoDouble: END")
     return dArray
 }
 

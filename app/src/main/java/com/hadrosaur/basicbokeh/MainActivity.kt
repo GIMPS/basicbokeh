@@ -22,6 +22,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProviders
 import kotlinx.android.synthetic.main.activity_main.*
@@ -55,7 +56,8 @@ class MainActivity : AppCompatActivity() {
             initializeCameras(this)
 
         buttonTakePhoto.setOnClickListener {
-            if (wideAngleId == normalLensId) {
+            if (!(camViewModel.getDoDualCamShot().value ?: false)
+                || wideAngleId == normalLensId) {
                 twoLens.isTwoLensShot = false
                 MainActivity.cameraParams.get(wideAngleId).let {
                     if (it?.isOpen == true) {
@@ -80,6 +82,18 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+
+        //Set up mode switch
+        switch_mode.setOnCheckedChangeListener { switch, isChecked ->
+            camViewModel.getDoDualCamShot().value = isChecked
+        }
+        val modeToggleObserver = object : Observer<Boolean> {
+            override fun onChanged(t: Boolean?) {
+                switch_mode.isChecked = t ?: false
+            }
+        }
+        camViewModel.getDoDualCamShot().observe(this, modeToggleObserver)
+
     }
 
     override fun onRequestPermissionsResult(requestCode: Int,

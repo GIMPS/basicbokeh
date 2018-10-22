@@ -89,8 +89,8 @@ class StillCaptureSessionCallback(val activity: MainActivity, val params: Camera
                 params.hasFace = true
                 params.faceBounds = faces.first().bounds
 //TODO                            expandBounds(faceBounds) //Include the whole head, not just the face
-                params.faceBounds.top -= (params.maxSize.width / 10)
-                params.faceBounds.bottom += (params.maxSize.width / 10)
+                params.faceBounds.top -= (params.maxSize.height / 10)
+                params.faceBounds.bottom += (params.maxSize.height / 10)
                 params.faceBounds.right += (params.maxSize.width / 10)
                 params.faceBounds.left -= (params.maxSize.width / 10)
             }

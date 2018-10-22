@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">BasicBokeh</string>
+    <string name="label_take_photo">Take Photo</string>
+    <string name="label_switch_mode">Dual-cam: </string>
 </resources>

@@ -133,12 +133,15 @@ class ImageSaver internal constructor(private val activity: MainActivity, privat
 
         //Foreground
         val croppedForeground = cropBitmap(activity, foregroundImageBitmap, cameraParams.faceBounds)
+        WriteFile(activity, croppedForeground,"CroppedHead")
         val scaledForeground = scaleBitmap(activity, croppedForeground, MainActivity.BLUR_SCALE_FACTOR)
         val featheredForeground = featherBitmap(activity, scaledForeground, 0.15f)
+        WriteFile(activity, featheredForeground,"FeatheredHead")
 
         val scaledBackground = scaleBitmap(activity, backgroundImageBitmap, MainActivity.BLUR_SCALE_FACTOR)
         val sepiaBackground = sepiaFilter(activity, scaledBackground)
         val blurredBackground = gaussianBlur(activity, sepiaBackground, MainActivity.GAUSSIAN_BLUR_RADIUS)
+        WriteFile(activity, blurredBackground,"BlurredSepiaBackground")
 
         if (wasFaceDetected) {
             val combinedBitmap = pasteBitmap(activity, blurredBackground, featheredForeground, cameraParams.faceBounds)
@@ -153,6 +156,9 @@ class ImageSaver internal constructor(private val activity: MainActivity, privat
             //Set the image view to be the final
             setCapturedPhoto(activity, imageView, finalBitmap)
 
+            //Save to disk
+            WriteFile(activity, finalBitmap,"FloatingHeadShot")
+
         } else {
             Logd("No face detected.")
             val rotatedImageBitmap = rotateBitmap(blurredBackground, rotation.toFloat())
@@ -164,6 +170,9 @@ class ImageSaver internal constructor(private val activity: MainActivity, privat
 
             //Set the image view to be the final
             setCapturedPhoto(activity, imageView, finalBitmap)
+
+            //Save to disk
+            WriteFile(activity, finalBitmap,"BackgroundShot")
         }
 
 
@@ -172,28 +181,6 @@ class ImageSaver internal constructor(private val activity: MainActivity, privat
         //See what happens if we try to combine things.
 
 
-        Logd( "Now saving photo to disk.")
-
-        var output: FileOutputStream? = null
-        try {
-            output = FileOutputStream(file)
-            output.write(bytes)
-        } catch (e: IOException) {
-            e.printStackTrace()
-        } finally {
-            image.close()
-            if (null != output) {
-                try {
-                    output.close()
-                } catch (e: IOException) {
-                    e.printStackTrace()
-                }
-
-            }
-        }
-
-        //Reset the image reader
-//        setupImageReader(activity, cameraParams)
     }
 
 }
