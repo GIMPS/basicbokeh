@@ -128,6 +128,9 @@ fun initializeCameras(activity: MainActivity) {
 
                 //Get image capture sizes
                 val map = characteristics?.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
+
+                Logd("Output format map: \n" + map.toString())
+
                 if (map != null) {
                     maxSize = Collections.max(Arrays.asList(*map.getOutputSizes(ImageFormat.JPEG)),
                             CompareSizesByArea())
@@ -268,6 +271,10 @@ fun setupImageReader(activity: MainActivity, params: CameraParams) {
                 ImageFormat.JPEG, /*maxImages*/10)
         imageReader?.setOnImageAvailableListener(
                 imageAvailableListener, backgroundHandler)
+
+        //For some cameras, using the max preview size can conflict with big image captures
+        //We just uses the smallest preview size to avoid this situation
+        params.previewTextureView?.surfaceTexture?.setDefaultBufferSize(minSize.width, minSize.height)
     }
 
 

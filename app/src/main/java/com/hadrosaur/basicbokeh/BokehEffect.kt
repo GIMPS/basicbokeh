@@ -14,8 +14,7 @@ import org.opencv.calib3d.Calib3d.stereoRectify
 import java.nio.ByteBuffer
 import org.opencv.calib3d.StereoSGBM.MODE_HH4
 import org.opencv.core.*
-import org.opencv.core.Core.DECOMP_SVD
-import org.opencv.core.Core.subtract
+import org.opencv.core.Core.*
 import org.opencv.imgproc.Imgproc.*
 import org.opencv.ximgproc.DisparityFilter
 import org.opencv.ximgproc.DisparityWLSFilter
@@ -48,19 +47,14 @@ fun DoBokeh(activity: MainActivity, twoLens: TwoLensCoordinator) : Bitmap {
     val tempWideBitmap = BitmapFactory.decodeByteArray(wideBytes, 0, wideBytes.size, null)
     Utils.bitmapToMat(tempWideBitmap, wideMat)
 
-    //Crop the wide angle shot so that has the same frame of view as the normal shot, ignoring distortion
-//    val scaleFactor: Float = twoLens.wideParams.smallestFocalLength / twoLens.normalParams.smallestFocalLength
-//    val scaleFactor = 0.83f
-//    var croppedWideMat = cropMat(wideMat, scaleFactor)
-
     val normalMat: Mat = Mat(twoLens.normalImage!!.height, twoLens.normalImage!!.width, CV_8UC1)
     val tempNormalBitmap = BitmapFactory.decodeByteArray(normalBytes, 0, normalBytes.size, null)
     Utils.bitmapToMat(tempNormalBitmap, normalMat)
 
     if (PrefHelper.getIntermediate(activity)) {
         activity.runOnUiThread {
-            activity.imageIntermediate1.setImageBitmap(tempNormalBitmap)
-            activity.imageIntermediate2.setImageBitmap(tempWideBitmap)
+            activity.imageIntermediate1.setImageBitmap(horizontalFlip(rotateBitmap(tempNormalBitmap, -90f)))
+            activity.imageIntermediate2.setImageBitmap(horizontalFlip(rotateBitmap(tempWideBitmap, -90f)))
         }
     }
 
@@ -166,11 +160,27 @@ fun DoBokeh(activity: MainActivity, twoLens: TwoLensCoordinator) : Bitmap {
         var combinedR: Mat = Mat(3, 3, CV_64FC1)
         var combinedT: Mat = Mat(3, 1, CV_64FC1)
 
+        val combinedT1: Mat = Mat()
+        val combinedT2: Mat = Mat()
+
+//        multiply(poseTranslationNormal, poseRotationNormal, combinedT, -1.0)
+        multiply(poseRotationNormal, poseTranslationNormal, combinedT)
+//        multiply(poseRotationWide, poseTranslationWide, combinedT2, -1.0)
+//        t[i] = -1.0 * np.dot(r[i], t[i])
+
         //To get our combined R, inverse poseRotationWide and multiply
-        Core.gemm(poseRotationNormal.inv(DECOMP_SVD), poseRotationWide, 1.0, Mat(), 0.0, combinedR)
+//        Core.gemm(poseRotationNormal.inv(DECOMP_SVD), poseRotationWide, 1.0, Mat(), 0.0, combinedR)
+        combinedR = poseRotationNormal
 
         //To get our combined T, we take the difference
-        subtract(poseTranslationWide, poseTranslationNormal, combinedT)
+//        subtract(poseTranslationWide, poseTranslationNormal, combinedT)
+
+        //Note: Wide is the reference cam (poseTranslationWide = [0,0,0] (TODO: check this for other devices)
+
+        // NOTE For future if implementing for back cams
+        //    if props['android.lens.facing']:
+        //        print 'lens facing BACK'
+        //        chart_distance *= -1  # API spec defines +z i pointing out from screen
 
 
         Logd("Final Combined Rotation Matrix: "
@@ -227,6 +237,8 @@ fun DoBokeh(activity: MainActivity, twoLens: TwoLensCoordinator) : Bitmap {
         val roi1: Rect = Rect()
         val roi2: Rect = Rect()
 
+
+
         stereoRectify(camMatrixNormal, distCoeffNormal, camMatrixWide, distCoeffWide,
                 finalNormalMat.size(), combinedR, combinedT, R1, R2, P1, P2, Q,
                 CALIB_ZERO_DISPARITY, -1.0, Size(), roi1, roi2)
@@ -261,7 +273,7 @@ fun DoBokeh(activity: MainActivity, twoLens: TwoLensCoordinator) : Bitmap {
 //        Q.put(0, 0, 1.0, 0.0, 0.0, -4.0483023452758789e+02, 0.0, 1.0, 0.0,
 //                -1.6956139907836914e+03, 0.0, 0.0, 0.0, 2.2048689061465034e+03, 0.0,
 //                0.0, 4.2089805994572998e+01, 0.0)
-*/
+
         Logd("R1: " + R1[0,0].get(0) + ", " + R1[0,1].get(0) + ", " + R1[0,2].get(0) + ", " + R1[1,0].get(0) + ", " + R1[1,1].get(0) + ", " + R1[1,2].get(0) + ", " + R1[2,0].get(0) + ", " + R1[2,1].get(0) + ", " + R1[2,2].get(0))
         Logd("R2: " + R2[0,0].get(0) + ", " + R2[0,1].get(0) + ", " + R2[0,2].get(0) + ", " + R2[1,0].get(0) + ", " + R2[1,1].get(0) + ", " + R2[1,2].get(0) + ", " + R2[2,0].get(0) + ", " + R2[2,1].get(0) + ", " + R2[2,2].get(0))
         Logd("P1: " + P1[0,0].get(0) + ", " + P1[0,1].get(0) + ", " + P1[0,2].get(0) + ", " + P1[0,3].get(0) + ", " + P1[1,0].get(0) + ", " + P1[1,1].get(0) + ", " + P1[1,2].get(0) + ", " + P1[1,3].get(0) + ", "
@@ -270,6 +282,7 @@ fun DoBokeh(activity: MainActivity, twoLens: TwoLensCoordinator) : Bitmap {
                 + P2[2,0].get(0) + ", " + P2[2,1].get(0) + ", " + P2[2,2].get(0) + ", " + P2[2,3].get(0))
 
 
+*/
 
         val mapNormal1: Mat = Mat()
         val mapNormal2: Mat = Mat()
@@ -279,11 +292,23 @@ fun DoBokeh(activity: MainActivity, twoLens: TwoLensCoordinator) : Bitmap {
         initUndistortRectifyMap(camMatrixNormal, distCoeffNormal, R1, P1, finalNormalMat.size(), CV_32F, mapNormal1, mapNormal2);
         initUndistortRectifyMap(camMatrixWide, distCoeffWide, R2, P2, finalWideMat.size(), CV_32F, mapWide1, mapWide2);
 
-        val rectifiedNormalMat: Mat = Mat()
-        val rectifiedWideMat: Mat = Mat()
+        var rectifiedNormalMat: Mat = Mat()
+        var rectifiedWideMat: Mat = Mat()
 
         remap(finalNormalMat, rectifiedNormalMat, mapNormal1, mapNormal2, INTER_LINEAR);
         remap(finalWideMat, rectifiedWideMat, mapWide1, mapWide2, INTER_LINEAR);
+
+        //Individually rectify
+//        undistort(finalNormalMat, rectifiedNormalMat, camMatrixNormal, distCoeffNormal)
+//        undistort(finalWideMat, rectifiedWideMat, camMatrixWide, distCoeffWide)
+
+        //Crop the wide angle shot so that has the same frame of view as the normal shot
+//    val scaleFactor: Float = twoLens.wideParams.smallestFocalLength / twoLens.normalParams.smallestFocalLength
+//        val scaleFactor = 0.813f
+//        val scaleFactor = 0.84f
+//        rectifiedWideMat = cropMat(rectifiedWideMat, scaleFactor)
+//        Imgproc.resize(rectifiedNormalMat, rectifiedNormalMat, rectifiedWideMat.size(), 0.0, 0.0, Imgproc.INTER_LINEAR)
+
 
         Logd( "Now saving rectified photos to disk.")
         val rectifiedNormalBitmap: Bitmap = Bitmap.createBitmap(rectifiedNormalMat.cols(), rectifiedNormalMat.rows(), Bitmap.Config.ARGB_8888)
@@ -296,8 +321,8 @@ fun DoBokeh(activity: MainActivity, twoLens: TwoLensCoordinator) : Bitmap {
 
         if (PrefHelper.getIntermediate(activity)) {
             activity.runOnUiThread {
-                activity.imageIntermediate3.setImageBitmap(rectifiedNormalBitmap)
-                activity.imageIntermediate4.setImageBitmap(rectifiedWideBitmap)
+                activity.imageIntermediate3.setImageBitmap(horizontalFlip(rotateBitmap(rectifiedNormalBitmap,-90f)))
+                activity.imageIntermediate4.setImageBitmap(horizontalFlip(rotateBitmap(rectifiedWideBitmap, -90f)))
             }
         }
 
@@ -427,14 +452,14 @@ fun rotationMatrixFromQuaternion(quatFloat: FloatArray) : DoubleArray {
     //Row 1
     cameraMatrix[0] = cal[f_x]
     cameraMatrix[1] = cal[s]
-//    cameraMatrix[2] = cal[c_x]
-    cameraMatrix[2] = cal[c_y]
+    cameraMatrix[2] = cal[c_x]
+//    cameraMatrix[2] = cal[c_y]
 
     //Row 2
     cameraMatrix[3] = 0.0
     cameraMatrix[4] = cal[f_y]
-//    cameraMatrix[5] = cal[c_y]
-    cameraMatrix[5] = cal[c_x]
+    cameraMatrix[5] = cal[c_y]
+//    cameraMatrix[5] = cal[c_x]
 
     //Row 3
     cameraMatrix[6] = 0.0
@@ -458,7 +483,6 @@ fun rotationMatrixFromQuaternion(quatFloat: FloatArray) : DoubleArray {
 
     return cameraMatrix
 }
-
 
 //The android intrinsic values are swizzled from what OpenCV needs. Output indexs should be: 0,1,3,4,2
 fun cameraDistortionFromCalibration(calibrationFloat: FloatArray) : DoubleArray {
