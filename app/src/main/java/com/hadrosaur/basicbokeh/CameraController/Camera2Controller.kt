@@ -11,6 +11,10 @@ import java.util.*
 
 
 import android.hardware.camera2.CameraAccessException
+import android.hardware.camera2.params.OutputConfiguration
+import android.hardware.camera2.params.SessionConfiguration
+import android.os.AsyncTask
+import android.os.Build
 import android.view.TextureView
 import com.hadrosaur.basicbokeh.CameraController.CameraStateCallback
 import com.hadrosaur.basicbokeh.CameraController.FocusCaptureSessionCallback
@@ -21,6 +25,10 @@ import com.hadrosaur.basicbokeh.CameraController.PreviewSessionStateCallback
 import com.hadrosaur.basicbokeh.CameraController.StillCaptureSessionCallback
 import com.hadrosaur.basicbokeh.MainActivity.Companion.Logd
 import com.hadrosaur.basicbokeh.MainActivity.Companion.cameraParams
+import com.hadrosaur.basicbokeh.MainActivity.Companion.dualCamLogicalId
+import com.hadrosaur.basicbokeh.MainActivity.Companion.normalLensId
+import com.hadrosaur.basicbokeh.MainActivity.Companion.twoLens
+import com.hadrosaur.basicbokeh.MainActivity.Companion.wideAngleId
 
 fun createCameraPreviewSession(activity: MainActivity, camera: CameraDevice, params: CameraParams) {
     Logd("In createCameraPreviewSession.")
@@ -30,26 +38,72 @@ fun createCameraPreviewSession(activity: MainActivity, camera: CameraDevice, par
     }
 
     try {
-        val texture = params.previewTextureView?.surfaceTexture
+        //If we have a dual camera, open both streams
+        if (Build.VERSION.SDK_INT >= 28 && params.id.equals(MainActivity.dualCamLogicalId)) {
+            val normalParams: CameraParams? = MainActivity.cameraParams.get(normalLensId)
+            val wideParams: CameraParams? = MainActivity.cameraParams.get(wideAngleId)
 
-        if (null == texture)
-            return
+            Logd("In createCameraPreview. This is a Dual Cam stream. Starting up simultaneous streams.")
 
-        val surface = Surface(texture)
+            if (null == normalParams || null == wideParams)
+                return
 
-        if (null == surface)
-            return
+            val normalTexture = normalParams.previewTextureView?.surfaceTexture
+            val wideTexture = wideParams.previewTextureView?.surfaceTexture
 
-        params.previewBuilder = camera.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
-        params.previewBuilder?.addTarget(surface)
+            if (null == normalTexture || null == wideTexture)
+                return
 
-        val imageSurface = params.imageReader?.surface
-        if (null == imageSurface)
-            return
+            val normalSurface = Surface(normalTexture)
+            val wideSurface = Surface(wideTexture)
 
-        // Here, we create a CameraCaptureSession for camera preview.
-        camera.createCaptureSession(Arrays.asList(surface, imageSurface),
-                PreviewSessionStateCallback(activity, params), null)
+            if (null == normalSurface || null == wideSurface)
+                return
+
+            val normalOutputConfigPreview = OutputConfiguration(normalSurface)
+            val normalOutputConfigImageReader = OutputConfiguration(normalParams.imageReader?.surface!!)
+            normalOutputConfigPreview.setPhysicalCameraId(normalLensId)
+            normalOutputConfigImageReader.setPhysicalCameraId(normalLensId)
+
+            val wideOutputConfigPreview = OutputConfiguration(wideSurface)
+            val wideOutputConfigImageReader = OutputConfiguration(wideParams.imageReader?.surface!!)
+            wideOutputConfigPreview.setPhysicalCameraId(wideAngleId)
+            wideOutputConfigImageReader.setPhysicalCameraId(wideAngleId)
+
+            val sessionConfig = SessionConfiguration(SessionConfiguration.SESSION_REGULAR,
+                    Arrays.asList(normalOutputConfigPreview, normalOutputConfigImageReader, wideOutputConfigPreview, wideOutputConfigImageReader),
+                    AsyncTask.THREAD_POOL_EXECUTOR, PreviewSessionStateCallback(activity, params))
+
+            params.previewBuilder = camera.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
+            params.previewBuilder?.addTarget(normalSurface)
+            params.previewBuilder?.addTarget(wideSurface)
+
+            camera.createCaptureSession(sessionConfig)
+
+            //Else we do not have a dual cam situation, just worry about the single camera
+        } else {
+            val texture = params.previewTextureView?.surfaceTexture
+
+            if (null == texture)
+                return
+
+            val surface = Surface(texture)
+
+            if (null == surface)
+                return
+
+            params.previewBuilder = camera.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
+            params.previewBuilder?.addTarget(surface)
+
+            val imageSurface = params.imageReader?.surface
+            if (null == imageSurface)
+                return
+
+            // Here, we create a CameraCaptureSession for camera preview.
+            camera.createCaptureSession(Arrays.asList(surface, imageSurface),
+                    PreviewSessionStateCallback(activity, params), null)
+        }
+
     } catch (e: CameraAccessException) {
         e.printStackTrace()
     } catch (e: IllegalStateException) {
@@ -68,8 +122,17 @@ fun camera2OpenCamera(activity: MainActivity, params: CameraParams?) {
         params.cameraCallback = CameraStateCallback(params, activity)
         params.captureCallback = FocusCaptureSessionCallback(activity, params)
 
-        Logd("openCamera: " + params.id)
-        manager.openCamera(params.id, params.cameraCallback, params.backgroundHandler)
+        //We have a dual lens situation, only open logical cam
+        if (!MainActivity.dualCamLogicalId.equals("")
+            && MainActivity.dualCamLogicalId.equals(params.id)) {
+            Logd("Open Logical Camera backed by 2+ physical streams: " + MainActivity.dualCamLogicalId)
+            manager.openCamera(params.id, params.cameraCallback, params.backgroundHandler)
+
+        } else {
+            Logd("openCamera: " + params.id)
+            manager.openCamera(params.id, params.cameraCallback, params.backgroundHandler)
+        }
+
     } catch (e: CameraAccessException) {
         Logd("openCamera CameraAccessException: " + params.id)
         e.printStackTrace()
@@ -116,50 +179,6 @@ fun closeCamera(params: CameraParams?, activity: MainActivity) {
     params.device?.close()
 }
 
-class SurfaceCallback(val activity: MainActivity, val params: CameraParams): SurfaceHolder.Callback {
-    override fun surfaceChanged(p0: SurfaceHolder?, p1: Int, p2: Int, p3: Int) {
-    }
-
-    override fun surfaceDestroyed(p0: SurfaceHolder?) {
-    }
-
-    override fun surfaceCreated(p0: SurfaceHolder?) {
-    }
-
-}
-
-class TextureListener(internal var params: CameraParams, internal val activity: MainActivity): TextureView.SurfaceTextureListener {
-    override fun onSurfaceTextureUpdated(p0: SurfaceTexture?) {
-//        Logd( "In surfaceTextureUpdated. Id: " + params.id)
-//        openCamera(params, activity)
-    }
-
-    override fun onSurfaceTextureAvailable(texture: SurfaceTexture, width: Int, height: Int) {
-        Logd( "In surfaceTextureAvailable. Id: " + params.id)
-        camera2OpenCamera(activity, params)
-    }
-
-    override fun onSurfaceTextureSizeChanged(texture: SurfaceTexture, width: Int, height: Int) {
-        Logd( "In surfaceTextureSizeChanged. Id: " + params.id)
-        val info = params.characteristics
-                ?.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
-
-        //       val largestSize = Collections.max(Arrays.asList(*info?.getOutputSizes(ImageFormat.JPEG)),
-        //               CompareSizesByArea())
-//        val optimalSize = chooseBigEnoughSize(
-//                info?.getOutputSizes(SurfaceHolder::class.java), width, height)
-//        params.previewTextureView.setFixedSize(optimalSize.width,
-//                optimalSize.height)
-//        configureTransform(width, height)
-    }
-
-    override fun onSurfaceTextureDestroyed(texture: SurfaceTexture) : Boolean {
-        Logd( "In surfaceTextureDestroyed. Id: " + params.id)
-        closeCamera(params, activity)
-        return true
-    }
-}
-
 
 
 fun takePicture(activity: MainActivity, params: CameraParams) {
@@ -189,18 +208,21 @@ fun lockFocus(activity: MainActivity, params: CameraParams) {
             //If this lens can focus, we need to start a focus search and wait for focus lock
             if (params.hasAF) {
                 Logd("In lockFocus. About to request focus lock and call capture.")
+//                params.captureBuilder = camera.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE)
+//                setAutoFlash(activity, camera, params.captureBuilder)
+//                params.captureBuilder?.addTarget(params.imageReader?.getSurface())
 //                params.captureBuilder?.set(CaptureRequest.CONTROL_AF_TRIGGER,
 //                        CameraMetadata.CONTROL_AF_TRIGGER_START);
-//                params.captureBuilder?.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_AUTO)
-                params.captureBuilder?.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE)
+ //               params.captureBuilder?.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_AUTO)
+//                params.captureBuilder?.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE)
                 params.state = STATE_PICTURE_TAKEN
                 captureStillPicture(activity, params)
 
-/*
-                params.state = STATE_WAITING_LOCK
-                params.captureSession?.capture(params.captureBuilder?.build(), params.captureCallback,
-                        params.backgroundHandler)
-*/
+
+//                params.state = STATE_WAITING_LOCK
+//                params.captureSession?.capture(params.captureBuilder?.build(), params.captureCallback,
+ //                       params.backgroundHandler)
+
                 //Otherwise, a fixed focus lens so we can go straight to taking the image
             } else {
                 Logd("In lockFocus. Fixed focus lens about call captureStillPicture.")
@@ -252,14 +274,36 @@ fun captureStillPicture(activity: MainActivity, params: CameraParams) {
         if (null != camera) {
             params.captureBuilder = camera.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE)
             params.captureBuilder?.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE)
-            setAutoFlash(activity, camera, params.captureBuilder)
-            params.captureBuilder?.addTarget(params.imageReader?.getSurface())
+//            params.captureBuilder?.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_AUTO)
+//            setAutoFlash(activity, camera, params.captureBuilder)
 
-/*            if (params.hasAF) {
-                    params.captureBuilder?.set(CaptureRequest.CONTROL_AF_TRIGGER,
-                            CameraMetadata.CONTROL_AF_TRIGGER_IDLE);
+            if (params.id.equals(dualCamLogicalId) && twoLens.isTwoLensShot) {
+
+                val normalParams: CameraParams? = MainActivity.cameraParams.get(normalLensId)
+                val wideParams: CameraParams? = MainActivity.cameraParams.get(wideAngleId)
+
+                if (null == normalParams || null == wideParams)
+                    return
+
+                Logd("In captureStillPicture. This is a Dual Cam shot.")
+
+                params.captureBuilder?.addTarget(normalParams.imageReader?.surface!!)
+                params.captureBuilder?.addTarget(wideParams.imageReader?.surface!!)
+
+            } else {
+                //Default to wide
+                val wideParams: CameraParams? = MainActivity.cameraParams.get(wideAngleId)
+                if (null != wideParams)
+                    params.captureBuilder?.addTarget(wideParams.imageReader?.surface!!)
+                else
+                    params.captureBuilder?.addTarget(params.imageReader?.getSurface())
             }
-*/
+
+//            if (params.hasAF) {
+//                    params.captureBuilder?.set(CaptureRequest.CONTROL_AF_TRIGGER,
+//                            CameraMetadata.CONTROL_AF_TRIGGER_IDLE);
+//            }
+
             //Let's add a sepia effect for fun
             //Only for 2-camera case and the background
 /*            if (params.hasSepia)
@@ -270,12 +314,26 @@ fun captureStillPicture(activity: MainActivity, params: CameraParams) {
 */
 
             //Otherwise too dark
+//            if (params.id == MainActivity.wideAngleId)
+//                params.captureBuilder?.set(CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION, 5);
+//            else
             params.captureBuilder?.set(CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION, 4);
 
-            //This is REQUIRED for face detect - even though Pixel 3 doesn't have sepia
-            params.captureBuilder?.set(CaptureRequest.CONTROL_EFFECT_MODE, CameraMetadata.CONTROL_EFFECT_MODE_SEPIA)
-            Logd("DUAL CAM DEBUG: I am setting sepia mode.")
+
+            params.captureBuilder?.set(CaptureRequest.JPEG_QUALITY, PrefHelper.getQuality(activity))
+
+            //We are going to try and correct distortion, so we disable automatic correction
+            //This should disable HDR+ as well
+            if (Build.VERSION.SDK_INT >= 28 && PrefHelper.getDualCam(activity)) {
+                params.captureBuilder?.set(CaptureRequest.DISTORTION_CORRECTION_MODE, CameraMetadata.DISTORTION_CORRECTION_MODE_OFF)
+                //This is REQUIRED to disable HDR+ - even though Pixel 3 doesn't have sepia
+                params.captureBuilder?.set(CaptureRequest.CONTROL_EFFECT_MODE, CameraMetadata.CONTROL_EFFECT_MODE_SEPIA)
+            } else {
+                //This is REQUIRED to disable HDR+ - even though Pixel 3 doesn't have sepia
+                params.captureBuilder?.set(CaptureRequest.CONTROL_EFFECT_MODE, CameraMetadata.CONTROL_EFFECT_MODE_SEPIA)
+                Logd("DUAL CAM DEBUG: I am setting sepia mode.")
 //            Logd("DUAL CAM DEBUG: I am NOT setting sepia mode.")
+            }
 
             // Request face detection
             if (CameraMetadata.STATISTICS_FACE_DETECT_MODE_OFF != params.bestFaceDetectionMode)
@@ -286,6 +344,13 @@ fun captureStillPicture(activity: MainActivity, params: CameraParams) {
             val rotation = activity.getWindowManager().getDefaultDisplay().getRotation()
             val capturedImageRotation = getOrientation(params, rotation)
             params.captureBuilder?.set(CaptureRequest.JPEG_ORIENTATION, capturedImageRotation)
+
+            try {
+                params.captureSession?.stopRepeating()
+//                params.captureSession?.abortCaptures()
+            } catch (e: CameraAccessException) {
+                e.printStackTrace()
+            }
 
             //Do the capture
             params.captureSession?.capture(params.captureBuilder?.build(), StillCaptureSessionCallback(activity, params),

@@ -1,23 +1,26 @@
 package com.hadrosaur.basicbokeh
 
 import android.Manifest
+import android.content.Intent
+import android.content.SharedPreferences
+import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
+import android.content.res.Configuration
+import android.graphics.BitmapFactory
 import android.graphics.ImageFormat
+import android.graphics.Rect
 import android.hardware.camera2.CameraAccessException
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
 import android.hardware.camera2.CameraMetadata
 import android.hardware.camera2.params.StreamConfigurationMap
 import android.media.ImageReader
-import android.os.Build
-import android.os.Bundle
-import android.os.Handler
-import android.os.HandlerThread
+import android.os.*
+import android.preference.PreferenceManager
 import android.util.Log
 import android.util.Size
 import android.util.SparseIntArray
-import android.view.Surface
-import android.view.View
+import android.view.*
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -43,6 +46,9 @@ class MainActivity : AppCompatActivity() {
 
         camViewModel = ViewModelProviders.of(this).get(CamViewModel::class.java)
         cameraParams = camViewModel.getCameraParams()
+        sharedPrefs =  PreferenceManager.getDefaultSharedPreferences(this)
+
+        toggleRotationLock(true)
 
         //Load OpenCV for Bokeh effects
         if (!OpenCVLoader.initDebug()) {
@@ -51,33 +57,64 @@ class MainActivity : AppCompatActivity() {
             Logd("OpenCV loaded successfully!")
         }
 
-
         if (checkCameraPermissions())
             initializeCameras(this)
 
+        //TODO: can this logic be simplified?  4 cases: dual cam, dual cam calibration, dual cam but single shot, single cam/single shot
         buttonTakePhoto.setOnClickListener {
             if (!(camViewModel.getDoDualCamShot().value ?: false)
                 || wideAngleId == normalLensId) {
                 twoLens.isTwoLensShot = false
-                MainActivity.cameraParams.get(wideAngleId).let {
-                    if (it?.isOpen == true) {
-                        MainActivity.Logd("In onClick. Taking Photo on wide-angle camera: " + wideAngleId)
-                        takePicture(this, it)
+
+                if (!dualCamLogicalId.equals("") && cameraParams.get(dualCamLogicalId)?.isOpen == true) {
+                    MainActivity.Logd("In onClick. Two cameras but taking single photo.")
+                    val logicalParams = cameraParams.get(dualCamLogicalId)
+                    if (null != logicalParams)
+                        takePicture(this, logicalParams)
+
+                } else {
+                    MainActivity.cameraParams.get(wideAngleId).let {
+                        if (it?.isOpen == true) {
+                            MainActivity.Logd("In onClick. Only one camera, taking Photo on wide-angle camera: " + wideAngleId)
+
+                            if (null != it)
+                                takePicture(this, it)
+                        }
                     }
                 }
+
             } else {
-                twoLens.reset()
-                twoLens.isTwoLensShot = true
-                MainActivity.cameraParams.get(wideAngleId).let {
-                    if (it?.isOpen == true) {
-                        MainActivity.Logd("In onClick. Taking Photo on wide-angle camera: " + wideAngleId)
-                        takePicture(this, it)
-                    }
-                }
-                MainActivity.cameraParams.get(normalLensId).let {
-                    if (it?.isOpen == true) {
-                        MainActivity.Logd("In onClick. Taking Photo on normal-lens camera: " + normalLensId)
-                        takePicture(this, it)
+                if (PrefHelper.getCalibrationMode(this)) {
+                    window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                    var counter = 0
+                    val NUM_PHOTOS: Long = 30
+                    val DELAY: Long = 5
+                    val timer = object : CountDownTimer(NUM_PHOTOS * DELAY * 1000, DELAY * 1000) {
+                        override fun onFinish() {
+                            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                            text_calibration_counter.setText("")
+                        }
+                        override fun onTick(millisUntilFinished: Long) {
+                            counter++
+                            text_calibration_counter.setText("" + counter + "/" + NUM_PHOTOS)
+                            twoLens.reset()
+                            twoLens.isTwoLensShot = true
+                            MainActivity.cameraParams.get(dualCamLogicalId).let {
+                                if (it?.isOpen == true) {
+                                    MainActivity.Logd("In onClick. Taking Dual Cam Photo on logical camera: " + dualCamLogicalId)
+                                    takePicture(this@MainActivity, it)
+                                }
+                            }
+                        }
+                   }.start()
+                } else {
+                    twoLens.reset()
+                    twoLens.isTwoLensShot = true
+                    MainActivity.cameraParams.get(dualCamLogicalId).let {
+                        if (it?.isOpen == true) {
+                            MainActivity.Logd("In onClick. Taking Dual Cam Photo on logical camera: " + dualCamLogicalId)
+                            takePicture(this@MainActivity, it)
+                        }
                     }
                 }
             }
@@ -86,7 +123,11 @@ class MainActivity : AppCompatActivity() {
         //Set up mode switch
         switch_mode.setOnCheckedChangeListener { switch, isChecked ->
             camViewModel.getDoDualCamShot().value = isChecked
+            PrefHelper.setDualCam(this, isChecked)
         }
+
+        switch_mode.isChecked = PrefHelper.getDualCam(this)
+
         val modeToggleObserver = object : Observer<Boolean> {
             override fun onChanged(t: Boolean?) {
                 switch_mode.isChecked = t ?: false
@@ -94,7 +135,63 @@ class MainActivity : AppCompatActivity() {
         }
         camViewModel.getDoDualCamShot().observe(this, modeToggleObserver)
 
+        //Set up show intermediates switch
+        switch_intermediate.setOnCheckedChangeListener { switch, isChecked ->
+            camViewModel.getShowIntermediate().value = isChecked
+            PrefHelper.setIntermediates(this, isChecked)
+            toggleIntermediateImages(isChecked)
+        }
+
+        toggleIntermediateImages(PrefHelper.getIntermediate(this))
+        switch_intermediate.isChecked = PrefHelper.getIntermediate(this)
+
+        val intermediateToggleObserver = object : Observer<Boolean> {
+            override fun onChanged(t: Boolean?) {
+                switch_intermediate.isChecked = t ?: false
+            }
+        }
+        camViewModel.getShowIntermediate().observe(this, intermediateToggleObserver)
+
+
+        /*
+        val image = BitmapFactory.decodeResource(getResources(), R.drawable.ambush);
+//        val mask = BitmapFactory.decodeResource(getResources(), R.drawable.ambush_filter_trans);
+        val mask = BitmapFactory.decodeResource(getResources(), R.drawable.ambush_filter);
+
+        val normalizedMask = hardNormalizeDepthMap(this, mask)
+        WriteFile(this, normalizedMask, "NormalizedMask")
+
+        val nicelyMasked = applyMask(this, image, normalizedMask)
+        WriteFile(this, nicelyMasked, "NicelyMasked")
+
+        var background = sepiaFilter(this, image)
+        background = gaussianBlur(this, background, BLUR_SCALE_FACTOR)
+        background = gaussianBlur(this, background, BLUR_SCALE_FACTOR)
+        WriteFile(this, background, "Background")
+
+        val finalImage = pasteBitmap(this, background, nicelyMasked, Rect(0, 0, background.width, background.height))
+        WriteFile(this, finalImage, "FinalImage")
+        imagePhoto.setImageBitmap(finalImage)
+*/
+    }//onCreate
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        val inflater: MenuInflater = menuInflater
+        inflater.inflate(R.menu.main_menu, menu)
+        return true
     }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.menu_settings -> {
+                val settingsIntent = Intent(this, SettingsActivity::class.java)
+                startActivity(settingsIntent)
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
+
 
     override fun onRequestPermissionsResult(requestCode: Int,
                                             permissions: Array<String>, grantResults: IntArray) {
@@ -159,8 +256,8 @@ class MainActivity : AppCompatActivity() {
         params.backgroundThread?.quitSafely()
         try {
             params.backgroundThread?.join()
-            params.backgroundThread = null
-            params.backgroundHandler = null
+//            params.backgroundThread = null
+//            params.backgroundHandler = null
         } catch (e: InterruptedException) {
             Logd( "Interrupted while shutting background thread down: " + e.message)
         }
@@ -172,22 +269,38 @@ class MainActivity : AppCompatActivity() {
 
         for (tempCameraParams in cameraParams) {
             startBackgroundThread(tempCameraParams.value)
-
+/*
             if (tempCameraParams.value.previewTextureView?.isAvailable == true) {
                 camera2OpenCamera(this, tempCameraParams.value)
             } else {
                 tempCameraParams.value.previewTextureView?.surfaceTextureListener =
                         TextureListener(tempCameraParams.value, this)
             }
+*/
         }
     }
 
     override fun onPause() {
         for (tempCameraParams in cameraParams) {
-            closeCamera(tempCameraParams.value, this)
+//            closeCamera(tempCameraParams.value, this)
             stopBackgroundThread(tempCameraParams.value)
         }
         super.onPause()
+    }
+
+
+    fun toggleRotationLock(lockRotation: Boolean = true) {
+        //Lock the screen orientation during a test so the camera doesn't get re-initialized mid-capture
+        if (lockRotation) {
+            val currentOrientation = resources.configuration.orientation
+            if (currentOrientation == Configuration.ORIENTATION_LANDSCAPE) {
+                requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_USER_LANDSCAPE
+            } else {
+                requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_USER_PORTRAIT
+            }
+        } else {
+            requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_USER
+        }
     }
 
     /**
@@ -204,12 +317,15 @@ class MainActivity : AppCompatActivity() {
         const val FIXED_FOCUS_DISTANCE: Float = 0f
         val INVALID_FOCAL_LENGTH: Float = Float.MAX_VALUE
         var NUM_CAMERAS = 0
+        var dualCamLogicalId = ""
         var logicalCamId = ""
         var wideAngleId = ""
         var normalLensId = ""
 
         lateinit var camViewModel:CamViewModel
         lateinit var cameraParams: HashMap<String, CameraParams>
+        lateinit var sharedPrefs: SharedPreferences
+
         val twoLens: TwoLensCoordinator = TwoLensCoordinator()
 
         val ORIENTATIONS = SparseIntArray()
@@ -227,9 +343,24 @@ class MainActivity : AppCompatActivity() {
         }
 
         fun Logd(message: String) {
-            if (camViewModel.getShouldOutputLog().value ?: true)
+            if (PrefHelper.getLog(sharedPrefs))
                 Log.d(LOG_TAG, message)
+//            if (camViewModel.getShouldOutputLog().value ?: true)
         }
 
+    }
+
+    fun toggleIntermediateImages(showIntermediate: Boolean) {
+        if (showIntermediate) {
+            imageIntermediate1.visibility = View.VISIBLE
+            imageIntermediate2.visibility = View.VISIBLE
+            imageIntermediate3.visibility = View.VISIBLE
+            imageIntermediate4.visibility = View.VISIBLE
+        } else {
+            imageIntermediate1.visibility = View.GONE
+            imageIntermediate2.visibility = View.GONE
+            imageIntermediate3.visibility = View.GONE
+            imageIntermediate4.visibility = View.GONE
+        }
     }
 }

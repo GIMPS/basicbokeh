@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="array_settings_windowsize">
+        <item>5</item>
+        <item>9</item>
+        <item>11</item>
+        <item>15</item>
+        <item>17</item>
+        <item>19</item>
+        <item>21</item>
+        <item>25</item>
+        <item>49</item>
+        <item>63</item>
+    </string-array>
+
+    <string-array name="array_settings_numdisparities">
+        <item>16</item>
+        <item>32</item>
+        <item>48</item>
+        <item>64</item>
+    </string-array>
+
+    <string-array name="array_settings_jpgqualities">
+        <item>35</item>
+        <item>50</item>
+        <item>65</item>
+        <item>75</item>
+        <item>80</item>
+        <item>85</item>
+        <item>90</item>
+        <item>95</item>
+        <item>100</item>
+    </string-array>
+
+</resources>

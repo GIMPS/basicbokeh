@@ -5,6 +5,7 @@ import android.hardware.camera2.*
 import android.view.Surface
 import androidx.annotation.NonNull
 import com.hadrosaur.basicbokeh.*
+import com.hadrosaur.basicbokeh.MainActivity.Companion.dualCamLogicalId
 import com.hadrosaur.basicbokeh.MainActivity.Companion.normalLensId
 import com.hadrosaur.basicbokeh.MainActivity.Companion.twoLens
 import com.hadrosaur.basicbokeh.MainActivity.Companion.wideAngleId
@@ -73,6 +74,8 @@ class StillCaptureSessionCallback(val activity: MainActivity, val params: Camera
             return
         }
 
+        MainActivity.Logd("captureStillPicture onCaptureCompleted. Hooray!.")
+
         val mode = result.get(CaptureResult.STATISTICS_FACE_DETECT_MODE)
         val faces = result.get(CaptureResult.STATISTICS_FACES)
 
@@ -98,13 +101,21 @@ class StillCaptureSessionCallback(val activity: MainActivity, val params: Camera
 
         //It might be that we received this callback first and we're waiting for the image
         if (twoLens.isTwoLensShot) {
-            if (wideAngleId == params.id) {
-                twoLens.wideShotDone = true
-                twoLens.wideParams = params
-            }
-            if (normalLensId == params.id) {
-                twoLens.normalShotDone = true
-                twoLens.normalParams = params
+            when (params.id) {
+                dualCamLogicalId-> {
+                    twoLens.wideShotDone = true
+                    twoLens.normalShotDone = true
+                    twoLens.normalParams = MainActivity.cameraParams.get(normalLensId) ?: params
+                    twoLens.wideParams = MainActivity.cameraParams.get(wideAngleId) ?: params
+                }
+                wideAngleId-> {
+                    twoLens.wideShotDone = true
+                    twoLens.wideParams = params
+                }
+                normalLensId-> {
+                    twoLens.normalShotDone = true
+                    twoLens.normalParams = params
+                }
             }
 
             if (twoLens.wideShotDone && twoLens.normalShotDone
@@ -119,8 +130,9 @@ class StillCaptureSessionCallback(val activity: MainActivity, val params: Camera
             }
         }
 
-        MainActivity.Logd("Camera2 onCaptureCompleted. CaptureEnd.")
+        MainActivity.Logd("captureStillPicture onCaptureCompleted. CaptureEnd.")
+        createCameraPreviewSession(activity, params.device!!, params)
 
-        params.captureBuilder?.removeTarget(params.imageReader?.getSurface())
+//        params.captureBuilder?.removeTarget(params.imageReader?.getSurface())
     }
 }

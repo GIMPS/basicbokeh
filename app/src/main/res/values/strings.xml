@@ -1,5 +1,73 @@
 <resources>
     <string name="app_name">BasicBokeh</string>
+    <string name="menu_settings">Settings</string>
+
     <string name="label_take_photo">Take Photo</string>
     <string name="label_switch_mode">Dual-cam: </string>
+    <string name="label_switch_intermediate">Show steps: </string>
+
+    <string name="settings_log_key">settings_log</string>
+    <string name="settings_log_title">Output log</string>
+    <string name="settings_log_summary">Output debug log via logcat</string>
+
+    <string name="settings_grabcut_key">settings_grabcut</string>
+    <string name="settings_grabcut_title">Use GrabCut</string>
+    <string name="settings_grabcut_summary">Use the GrabCut algorithm to guess better foreground bounds</string>
+
+    <string name="settings_dualcam_key">settings_dualcam</string>
+    <string name="settings_dualcam_title">Dual-cam</string>
+    <string name="settings_dualcam_summary">Dual-cam: </string>
+
+    <string name="settings_intermediate_key">settings_intermediate</string>
+    <string name="settings_intermediate_title">Show intermediate steps</string>
+    <string name="settings_intermediate_summary">Show intermediate image processing steps as the final picture is created</string>
+
+    <string name="settings_quality_key">settings_quality</string>
+    <string name="settings_quality_title">JPG Quality</string>
+
+    <string name="settings_manual_calibration_key">settings_manual_calibration</string>
+    <string name="settings_manual_calibration_title">Manual calibration</string>
+    <string name="settings_manual_calibration_summary_on">Use hardcoded manual calibration settings for camera in/extrinsics</string>
+    <string name="settings_manual_calibration_summary_off">Use OEM calbration settings for camera in/extrinsics</string>
+
+    <string name="settings_calibration_mode_key">settings_calibration_mode</string>
+    <string name="settings_calibration_mode_title">Calibration mode</string>
+    <string name="settings_calibration_mode_summary_on">Perform 30 shots (every 5 seconds) and save both camera captures to disk with timestamps (dual-lens mode only)</string>
+    <string name="settings_calibration_mode_summary_off">Regular capture mode</string>
+
+    <string name="settings_bokeh_category">Bokeh Settings</string>
+    <string name="settings_bokeh_sepia_key">settings_bokeh_sepia</string>
+    <string name="settings_bokeh_sepia_title">Sepia</string>
+    <string name="settings_bokeh_sepia_summary">Use sepia filter for Bokeh background</string>
+
+    <string name="settings_bokeh_blur_key">settings_bokeh_blur</string>
+    <string name="settings_bokeh_blur_title">Blur</string>
+    <string name="settings_bokeh_blur_summary">Use blur filter for Bokeh background</string>
+
+
+    <string name="settings_sgbm_category">SGBM Settings</string>
+
+    <string name="settings_sgbm_key">settings_sgbm</string>
+    <string name="settings_sgbm_title">Use SGBM</string>
+    <string name="settings_sgbm_summary_on">Use SGBM method for creating depth maps</string>
+    <string name="settings_sgbm_summary_off">Use StereoBM method for creating depth maps</string>
+
+    <string name="settings_sgbm_windowsize_key">settings_sgbm_windowsize</string>
+    <string name="settings_sgbm_windowsize_title">Window size</string>
+
+    <string name="settings_sgbm_numdisparities_key">settings_sgbm_numdisparities</string>
+    <string name="settings_sgbm_numdisparities_title">Number of disparities</string>
+
+    <!--
+        <string name="settings_t_key">settings_</string>
+        <string name="settings_t_title"></string>
+        <string name="settings_t_summary"></string>
+
+        <string name="settings_t_key">settings_</string>
+        <string name="settings_t_title"></string>
+        <string name="settings_t_summary_on"></string>
+        <string name="settings_t_summary_off"></string>
+
+    -->
+
 </resources>

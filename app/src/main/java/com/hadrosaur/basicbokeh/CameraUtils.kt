@@ -54,12 +54,23 @@ fun initializeCameras(activity: MainActivity) {
                 largestAperture = largestAperture(apertures)
                 minFocusDistance = cameraChars.get(CameraCharacteristics.LENS_INFO_MINIMUM_FOCUS_DISTANCE)
 
+                if (Build.VERSION.SDK_INT >= 28) {
+                    canSync = cameraChars.get(CameraCharacteristics.LOGICAL_MULTI_CAMERA_SENSOR_SYNC_TYPE) == CameraMetadata.LOGICAL_MULTI_CAMERA_SENSOR_SYNC_TYPE_CALIBRATED
+                    if (canSync)
+                        Logd("This camera can SYNC its sensors with timestamp accurately.")
+                }
                 //Bokeh calculations
                 if (Build.VERSION.SDK_INT >= 28) {
                     lensDistortion = cameraChars.get(CameraCharacteristics.LENS_DISTORTION)
                     intrinsicCalibration = cameraChars.get(CameraCharacteristics.LENS_INTRINSIC_CALIBRATION)
                     poseRotation = cameraChars.get(CameraCharacteristics.LENS_POSE_ROTATION)
                     poseTranslation = cameraChars.get(CameraCharacteristics.LENS_POSE_TRANSLATION)
+
+                    distortionModes = cameraChars.get(CameraCharacteristics.DISTORTION_CORRECTION_AVAILABLE_MODES)
+
+//                    for (mode in distortionModes) {
+//                        Logd("This camera has distortion mode: " + mode)
+//                    }
                 }
 
                 for (focalLength in focalLengths) {
@@ -80,19 +91,24 @@ fun initializeCameras(activity: MainActivity) {
                 effects = cameraChars.get(CameraCharacteristics.CONTROL_AVAILABLE_EFFECTS)
                 hasSepia = effects.contains(CameraMetadata.CONTROL_EFFECT_MODE_SEPIA)
                 hasMono = effects.contains(CameraMetadata.CONTROL_EFFECT_MODE_MONO)
-
                 hasAF = minFocusDistance != MainActivity.FIXED_FOCUS_DISTANCE //If camera is fixed focus, no AF
+
 
                 if (hasSepia)
                     MainActivity.Logd("WE HAVE Sepia!")
                 if (hasMono)
                     MainActivity.Logd("WE HAVE Mono!")
+                if (hasAF)
+                    MainActivity.Logd("Camera " + id + " has autofocus.")
+                else
+                    MainActivity.Logd("Camera " + id + " is fixed-focus.")
+
 
                 //Facical detection
                 val faceDetectModes: IntArray = cameraChars.get(CameraCharacteristics.STATISTICS_INFO_AVAILABLE_FACE_DETECT_MODES)
                 for (mode in faceDetectModes) {
                     Logd("This cam has face detect mode: " + mode)
-                    bestFaceDetectionMode = mode //assume array is assorted ascending
+                    bestFaceDetectionMode = mode //assume array is sorted ascending
                 }
 
                 if (hasDepth)
@@ -170,6 +186,16 @@ fun initializeCameras(activity: MainActivity) {
 
                 MainActivity.Logd("Found a multi: " + MainActivity.logicalCamId + " with wideAngle: " + MainActivity.wideAngleId + "(" + MainActivity.cameraParams.get(MainActivity.wideAngleId)?.smallestFocalLength
                         + ") and normal: " + MainActivity.normalLensId + " (" + MainActivity.cameraParams.get(MainActivity.normalLensId)?.minDeltaFromNormal + ")")
+
+                //If we have a logical cam and two seprate physical cams
+                if (!MainActivity.logicalCamId.equals("")
+                        && MainActivity.logicalCamId != MainActivity.wideAngleId
+                        && MainActivity.logicalCamId != MainActivity.normalLensId
+                        && MainActivity.wideAngleId != MainActivity.normalLensId) {
+                    MainActivity.cameraParams.get(MainActivity.logicalCamId)?.isLogicalBackedByPhysical = true
+                    MainActivity.dualCamLogicalId = MainActivity.logicalCamId
+                }
+
                 break //Use the first multi-camera
             }
         }
@@ -178,13 +204,18 @@ fun initializeCameras(activity: MainActivity) {
                 + ") and normal: " + MainActivity.normalLensId + " (" + MainActivity.cameraParams.get(MainActivity.normalLensId)?.minDeltaFromNormal + ")")
 
         MainActivity.cameraParams.get(MainActivity.wideAngleId)?.previewTextureView  = activity.texture_background
+        MainActivity.cameraParams.get(MainActivity.wideAngleId)?.previewTextureView?.surfaceTextureListener =
+                TextureListener(MainActivity.cameraParams.get(MainActivity.wideAngleId)!!, activity)
 
-        // If no multi-camera, only open one stream
+        // If multi-camera, ready both preview textures
         if (MainActivity.wideAngleId != MainActivity.normalLensId) {
             MainActivity.cameraParams.get(MainActivity.normalLensId)?.previewTextureView  = activity.texture_foreground
+            MainActivity.cameraParams.get(MainActivity.normalLensId)?.previewTextureView?.surfaceTextureListener =
+                    TextureListener(MainActivity.cameraParams.get(MainActivity.normalLensId)!!, activity)
         }
 
-        //TODO: DYnamically blur preview, doing something like this: https://stackoverflow.com/questions/34972250/android-dynamically-blur-surface-with-video
+
+//        //TODO: DYnamically blur preview, doing something like this: https://stackoverflow.com/questions/34972250/android-dynamically-blur-surface-with-video
     } catch (accessError: CameraAccessException) {
         accessError.printStackTrace()
     }
@@ -238,5 +269,7 @@ fun setupImageReader(activity: MainActivity, params: CameraParams) {
         imageReader?.setOnImageAvailableListener(
                 imageAvailableListener, backgroundHandler)
     }
+
+
 }
 

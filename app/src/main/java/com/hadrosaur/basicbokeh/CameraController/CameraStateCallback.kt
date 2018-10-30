@@ -25,7 +25,7 @@ class CameraStateCallback(internal var params: CameraParams, internal var activi
             return
         }
 
-        closeCamera(params, activity)
+//        closeCamera(params, activity)
     }
 
     override fun onError(@NonNull cameraDevice: CameraDevice, error: Int) {
@@ -42,9 +42,9 @@ class CameraStateCallback(internal var params: CameraParams, internal var activi
             closeACamera(activity)
             camera2OpenCamera(activity, params)
         } else if (CameraDevice.StateCallback.ERROR_CAMERA_DEVICE == error){
-            MainActivity.Logd("Fatal camera error, close and try to re-initialize...")
+            MainActivity.Logd("Fatal camera error, close device.")
             closeCamera(params, activity)
-            camera2OpenCamera(activity, params)
+//            camera2OpenCamera(activity, params)
         } else if (CameraDevice.StateCallback.ERROR_CAMERA_IN_USE == error){
             MainActivity.Logd("This camera is already open... doing nothing")
         } else {

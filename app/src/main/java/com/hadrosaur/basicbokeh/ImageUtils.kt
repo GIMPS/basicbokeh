@@ -37,11 +37,24 @@ import android.hardware.camera2.CameraMetadata
 import android.hardware.camera2.CaptureRequest
 import android.net.Uri
 import android.widget.Toast
+import androidx.core.view.ViewCompat.LAYER_TYPE_HARDWARE
+import androidx.core.view.ViewCompat.setLayerType
 import com.hadrosaur.basicbokeh.MainActivity.Companion.twoLens
 import org.opencv.android.BaseLoaderCallback
 import org.opencv.android.LoaderCallbackInterface
 import org.opencv.android.OpenCVLoader
+import org.opencv.android.Utils
+import org.opencv.core.Core.merge
+import org.opencv.core.Core.split
+import org.opencv.core.CvType
+import org.opencv.core.CvType.CV_8UC1
+import org.opencv.core.CvType.CV_8UC4
 import org.opencv.core.Mat
+import org.opencv.core.Size
+import org.opencv.imgproc.Imgproc
+import org.opencv.imgproc.Imgproc.*
+import java.text.SimpleDateFormat
+import java.util.*
 
 
 class ImageAvailableListener(private val activity: MainActivity, internal var params: CameraParams) : ImageReader.OnImageAvailableListener {
@@ -130,6 +143,8 @@ class ImageSaver internal constructor(private val activity: MainActivity, privat
         //1. Single lens: cut out head, paste it on blurred/sepia'd background
         val backgroundImageBitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, null)
         val foregroundImageBitmap = backgroundImageBitmap.copy(backgroundImageBitmap.config, true)
+
+        //TODO: Insert GrabCut logic here.
 
         //Foreground
         val croppedForeground = cropBitmap(activity, foregroundImageBitmap, cameraParams.faceBounds)
@@ -415,7 +430,7 @@ fun WriteFile(activity: MainActivity, bitmap: Bitmap, name: String) {
     var output: FileOutputStream? = null
     try {
         output = FileOutputStream(jpgFile)
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 90, output)
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)
     } catch (e: IOException) {
         e.printStackTrace()
     } finally {
@@ -437,12 +452,17 @@ fun WriteFile(activity: MainActivity, bitmap: Bitmap, name: String) {
     Logd("WriteFile: Completed.")
 }
 
-fun WriteFile(activity: MainActivity, bytes: ByteArray, name: String) {
+fun getFileHandle (activity: MainActivity, name: String, withTimestamp: Boolean) : File {
     val PHOTOS_DIR: String = "BasicBokeh"
 
-    val jpgFile = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM),
-            File.separatorChar + PHOTOS_DIR + File.separatorChar +
-                    name + ".jpg")
+    var filePath = File.separatorChar + PHOTOS_DIR + File.separatorChar + name
+
+    if (withTimestamp)
+        filePath += "-" + generateTimestamp()
+
+    filePath += ".jpg"
+
+    val jpgFile = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM), filePath)
 
     val photosDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM), PHOTOS_DIR)
 
@@ -455,6 +475,42 @@ fun WriteFile(activity: MainActivity, bytes: ByteArray, name: String) {
             Logd("Photo storage directory DCIM/" + PHOTOS_DIR + " did not exist. Created.")
         }
     }
+
+    return jpgFile
+}
+
+fun WriteFile(activity: MainActivity, bitmap: Bitmap, name: String, withTimestamp: Boolean = false) {
+
+    val jpgFile = getFileHandle(activity, name, withTimestamp)
+
+    var output: FileOutputStream? = null
+    try {
+        output = FileOutputStream(jpgFile)
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 91, output)
+    } catch (e: IOException) {
+        e.printStackTrace()
+    } finally {
+        if (null != output) {
+            try {
+                output.close()
+
+                //File is written, let media scanner know
+                val scannerIntent = Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE)
+                scannerIntent.data = Uri.fromFile(jpgFile)
+                activity.sendBroadcast(scannerIntent)
+
+            } catch (e: IOException) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    Logd("WriteFile: Completed.")
+}
+
+fun WriteFile(activity: MainActivity, bytes: ByteArray, name: String, withTimestamp: Boolean = false) {
+
+    val jpgFile = getFileHandle(activity, name, withTimestamp)
 
     var output: FileOutputStream? = null
     try {
@@ -479,4 +535,71 @@ fun WriteFile(activity: MainActivity, bytes: ByteArray, name: String) {
     }
 
     Logd("WriteFile: Completed.")
+}
+
+fun generateTimestamp(): String {
+    val sdf = SimpleDateFormat("yyyy_MM_dd_HH_mm_ss_SSS", Locale.US)
+    return sdf.format(Date())
+}
+
+fun applyMask(activity: MainActivity, image: Bitmap, mask: Bitmap) : Bitmap {
+    val maskedImage = Bitmap.createBitmap(image.width, image.height, image.config)
+    val canvas = Canvas(maskedImage)
+
+    val maskPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    maskPaint.setXfermode(PorterDuffXfermode(PorterDuff.Mode.DST_IN))
+
+    canvas.drawBitmap(image, 0.0f, 0.0f, Paint())
+    canvas.drawBitmap(mask, 0.0f, 0.0f, maskPaint)
+
+    WriteFile(activity, maskedImage, "MaskedFull")
+
+    return maskedImage
+}
+
+//Normalize depthmap to be mostly white or black, with steep curve at cutoff between 0 - 255
+fun hardNormalizeDepthMap(activity: Activity, inputBitmap: Bitmap, cutoff: Double = 80.0, blurSize: Double = 100.0) : Bitmap {
+    val inputMat: Mat = Mat()
+    Utils.bitmapToMat(inputBitmap, inputMat)
+    val inputMat1C = Mat()
+//    inputMat.convertTo(inputMat1C, CV_8UC1) //Make sure the bit depth is right
+    Imgproc.cvtColor(inputMat, inputMat1C, CV_8UC1) //Make sure the channels are right
+
+    val outputMat = hardNormalizeDepthMap(inputMat)
+    var outputBitmap: Bitmap = Bitmap.createBitmap(outputMat.cols(), outputMat.rows(), Bitmap.Config.ARGB_8888)
+    Utils.matToBitmap(outputMat, outputBitmap)
+
+    outputBitmap = blackToTransparent(outputBitmap)
+    outputBitmap = gaussianBlur(activity, outputBitmap, 25f)
+    outputBitmap = gaussianBlur(activity, outputBitmap, 25f)
+
+    return outputBitmap
+}
+
+//Normalize depthmap to be mostly white or black, with steep curve at cutoff between 0 - 255
+//Return Mat with background transparent
+fun hardNormalizeDepthMap(inputMat: Mat, cutoff: Double = 80.0, blurSize: Double = 100.0) : Mat {
+    val normalizedMat = Mat()
+
+    //Make sure we're in the right format
+    inputMat.convertTo(normalizedMat, CV_8UC1)
+
+    //Hard threshold everything
+    threshold(normalizedMat, normalizedMat, cutoff, 255.0, THRESH_BINARY);
+
+    return normalizedMat
+}
+
+fun blackToTransparent(bitmap: Bitmap, cutoff: Int = 50) : Bitmap {
+    val pixels: IntArray = IntArray(bitmap.height * bitmap.width)
+    bitmap.getPixels(pixels, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
+
+    for (i in 0 until pixels.size) {
+        if (Color.red(pixels[i]) <= cutoff && Color.blue(pixels[i]) <= cutoff && Color.green(pixels[i]) <= cutoff) {
+            pixels[i] = pixels[i] and 0x00ffffff
+        }
+    }
+
+    bitmap.setPixels(pixels, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
+    return  bitmap
 }

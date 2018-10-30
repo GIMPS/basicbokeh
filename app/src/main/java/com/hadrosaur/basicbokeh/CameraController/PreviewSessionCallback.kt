@@ -39,9 +39,10 @@ class PreviewSessionStateCallback(val activity: MainActivity, val params: Camera
         MainActivity.Logd("In onConfigured: CaptureSession configured!")
         // When the session is ready, we start displaying the preview.
         try {
+
             params.previewBuilder?.set(CaptureRequest.CONTROL_AF_MODE,
-                    CaptureRequest.CONTROL_AF_MODE_AUTO)
-            setAutoFlash(activity, cameraCaptureSession.device, params.previewBuilder)
+                    CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE)
+//            setAutoFlash(activity, cameraCaptureSession.device, params.previewBuilder)
             params.captureSession = cameraCaptureSession
             params.state = STATE_PREVIEW
 

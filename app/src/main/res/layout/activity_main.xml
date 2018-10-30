@@ -45,16 +45,39 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
-        android:layout_marginEnd="8dp"
         android:layout_marginTop="8dp"
         android:layout_marginBottom="8dp"
-        android:checked="true"
         android:showText="false"
-        android:switchPadding="8dp"
+        android:switchPadding="4dp"
         android:text="@string/label_switch_mode"
         app:layout_constraintBottom_toTopOf="@+id/guideline"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/texture_foreground" />
+
+    <Switch
+        android:id="@+id/switch_intermediate"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:showText="false"
+        android:switchPadding="4dp"
+        android:text="@string/label_switch_intermediate"
+        app:layout_constraintBottom_toTopOf="@+id/guideline"
+        app:layout_constraintStart_toEndOf="@id/switch_mode"
+        app:layout_constraintTop_toBottomOf="@+id/texture_foreground" />
+
+    <TextView
+        android:id="@+id/text_calibration_counter"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:text=""
+        app:layout_constraintBottom_toTopOf="@+id/guideline"
+        app:layout_constraintStart_toEndOf="@id/switch_intermediate"
+        app:layout_constraintTop_toBottomOf="@+id/texture_foreground" />
+
 
     <ImageButton
         android:id="@+id/buttonTakePhoto"
@@ -63,9 +86,74 @@
         android:layout_marginEnd="8dp"
         android:layout_marginBottom="8dp"
         android:contentDescription="@string/label_take_photo"
+        android:minHeight="65dp"
         app:layout_constraintBottom_toTopOf="@+id/guideline"
         app:layout_constraintEnd_toEndOf="parent"
         app:srcCompat="@android:drawable/ic_menu_camera" />
+
+    <ImageView
+        android:id="@+id/imageIntermediate1"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginBottom="8dp"
+        android:adjustViewBounds="true"
+        android:contentDescription="Intermediate Image 1"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/imageIntermediate2"
+        app:layout_constraintTop_toBottomOf="@id/guideline"
+        app:layout_constraintBottom_toTopOf="@id/imageIntermediate3"
+        app:srcCompat="@android:drawable/btn_star_big_off" />
+
+    <ImageView
+        android:id="@+id/imageIntermediate2"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginBottom="8dp"
+        android:adjustViewBounds="true"
+        android:contentDescription="Intermediate Image 2"
+        app:layout_constraintStart_toEndOf="@id/imageIntermediate1"
+        app:layout_constraintEnd_toStartOf="@id/imagePhoto"
+        app:layout_constraintTop_toBottomOf="@+id/guideline"
+        app:layout_constraintBottom_toTopOf="@+id/imageIntermediate4"
+        app:srcCompat="@android:drawable/btn_star_big_off" />
+
+    <ImageView
+        android:id="@+id/imageIntermediate3"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginBottom="8dp"
+        android:adjustViewBounds="true"
+        android:contentDescription="Intermediate Image 3"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/imageIntermediate4"
+        app:layout_constraintTop_toBottomOf="@+id/imageIntermediate1"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:srcCompat="@android:drawable/btn_star_big_off" />
+
+    <ImageView
+        android:id="@+id/imageIntermediate4"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:adjustViewBounds="true"
+        android:contentDescription="Intermediate Image 4"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="@id/imageIntermediate2"
+        app:layout_constraintStart_toEndOf="@id/imageIntermediate3"
+        app:layout_constraintTop_toBottomOf="@+id/imageIntermediate2"
+        app:srcCompat="@android:drawable/btn_star_big_off" />
+
 
     <ImageView
         android:id="@+id/imagePhoto"
@@ -76,10 +164,12 @@
         android:layout_marginEnd="8dp"
         android:layout_marginBottom="8dp"
         android:contentDescription="Captured Photo"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:adjustViewBounds="true"
+        android:visibility="visible"
+        app:layout_constraintStart_toEndOf="@id/imageIntermediate2"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="@+id/guideline"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:srcCompat="@android:drawable/btn_star_big_off" />
 
     <androidx.constraintlayout.widget.Guideline

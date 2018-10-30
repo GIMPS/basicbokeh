@@ -24,6 +24,7 @@ class CameraParams {
     internal var hasMulti: Boolean = false
     internal var hasManualControl: Boolean = false
     internal var isOpen: Boolean = false
+    internal var canSync: Boolean = false
     internal var characteristics: CameraCharacteristics? = null
 
     internal var backgroundThread: HandlerThread? = null
@@ -37,6 +38,7 @@ class CameraParams {
     internal var physicalCameras: Set<String> = HashSet<String>()
     internal var focalLengths: FloatArray = FloatArray(0)
     internal var apertures: FloatArray = FloatArray(0)
+    internal var distortionModes: IntArray = IntArray(0)
     internal var smallestFocalLength: Float = MainActivity.INVALID_FOCAL_LENGTH
     internal var minDeltaFromNormal: Float = MainActivity.INVALID_FOCAL_LENGTH
     internal var minFocusDistance: Float = MainActivity.FIXED_FOCUS_DISTANCE
@@ -45,6 +47,8 @@ class CameraParams {
     internal var hasSepia: Boolean = false
     internal var hasMono: Boolean = false
     internal var hasAF: Boolean = false
+
+    internal var isLogicalBackedByPhysical: Boolean = false
 
     internal var bestFaceDetectionMode: Int = 0
 

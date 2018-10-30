@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+
+    <CheckBoxPreference
+        android:id="@+id/checkbox_log"
+        android:defaultValue="true"
+        android:key="@string/settings_log_key"
+        android:title="@string/settings_log_title"
+        android:summary="@string/settings_log_summary"
+    />
+
+    <CheckBoxPreference
+        android:id="@+id/checkbox_grabcut"
+        android:defaultValue="false"
+        android:key="@string/settings_grabcut_key"
+        android:title="@string/settings_grabcut_title"
+        android:summary="@string/settings_grabcut_summary"
+    />
+
+    <ListPreference
+        android:id="@+id/list_jpgquality"
+        android:key="@string/settings_quality_key"
+        android:title="@string/settings_quality_title"
+        android:summary="%s"
+        android:entries="@array/array_settings_jpgqualities"
+        android:entryValues="@array/array_settings_jpgqualities"
+        android:defaultValue="90"
+        />
+
+    <CheckBoxPreference
+        android:id="@+id/checkbox_manual_calibration"
+        android:defaultValue="false"
+        android:key="@string/settings_manual_calibration_key"
+        android:title="@string/settings_manual_calibration_title"
+        android:summaryOn="@string/settings_manual_calibration_summary_on"
+        android:summaryOff="@string/settings_manual_calibration_summary_off"
+        />
+
+    <CheckBoxPreference
+        android:id="@+id/checkbox_calibration_mode"
+        android:defaultValue="false"
+        android:key="@string/settings_calibration_mode_key"
+        android:title="@string/settings_calibration_mode_title"
+        android:summaryOn="@string/settings_calibration_mode_summary_on"
+        android:summaryOff="@string/settings_calibration_mode_summary_off"
+        />
+
+    <PreferenceCategory
+        android:title="@string/settings_bokeh_category"
+        android:key="@string/settings_bokeh_category">
+
+        <CheckBoxPreference
+            android:id="@+id/checkbox_bokeh_sepiah"
+            android:defaultValue="true"
+            android:key="@string/settings_bokeh_sepia_key"
+            android:title="@string/settings_bokeh_sepia_title"
+            android:summary="@string/settings_bokeh_sepia_summary"
+            />
+
+        <CheckBoxPreference
+            android:id="@+id/checkbox_bokeh_blur"
+            android:defaultValue="true"
+            android:key="@string/settings_bokeh_blur_key"
+            android:title="@string/settings_bokeh_blur_title"
+            android:summary="@string/settings_bokeh_blur_summary"
+            />
+    </PreferenceCategory>
+
+
+
+    <PreferenceCategory
+        android:title="@string/settings_sgbm_category"
+        android:key="@string/settings_sgbm_category">
+
+        <CheckBoxPreference
+            android:id="@+id/checkbox_sgbm"
+            android:defaultValue="true"
+            android:key="@string/settings_sgbm_key"
+            android:title="@string/settings_sgbm_title"
+            android:summaryOn="@string/settings_sgbm_summary_on"
+            android:summaryOff="@string/settings_sgbm_summary_off"
+            />
+
+        <ListPreference
+            android:id="@+id/list_windowsize"
+            android:key="@string/settings_sgbm_windowsize_key"
+            android:title="@string/settings_sgbm_windowsize_title"
+            android:summary="%s"
+            android:entries="@array/array_settings_windowsize"
+            android:entryValues="@array/array_settings_windowsize"
+            android:defaultValue="19"
+            />
+
+        <ListPreference
+            android:id="@+id/list_numdisparities"
+            android:key="@string/settings_sgbm_numdisparities_key"
+            android:title="@string/settings_sgbm_numdisparities_title"
+            android:summary="%s"
+            android:entries="@array/array_settings_numdisparities"
+            android:entryValues="@array/array_settings_numdisparities"
+            android:defaultValue="32"
+            />
+
+    </PreferenceCategory>
+</PreferenceScreen>
