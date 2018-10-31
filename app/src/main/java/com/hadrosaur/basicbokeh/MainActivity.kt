@@ -64,7 +64,10 @@ class MainActivity : AppCompatActivity() {
         buttonTakePhoto.setOnClickListener {
             if (!(camViewModel.getDoDualCamShot().value ?: false)
                 || wideAngleId == normalLensId) {
+                twoLens.reset()
                 twoLens.isTwoLensShot = false
+                singleLens.reset()
+                singleLens.isSingleLensShot = true
 
                 if (!dualCamLogicalId.equals("") && cameraParams.get(dualCamLogicalId)?.isOpen == true) {
                     MainActivity.Logd("In onClick. Two cameras but taking single photo.")
@@ -76,7 +79,10 @@ class MainActivity : AppCompatActivity() {
                     MainActivity.cameraParams.get(wideAngleId).let {
                         if (it?.isOpen == true) {
                             MainActivity.Logd("In onClick. Only one camera, taking Photo on wide-angle camera: " + wideAngleId)
-
+                            twoLens.reset()
+                            twoLens.isTwoLensShot = false
+                            singleLens.reset()
+                            singleLens.isSingleLensShot = true
                             if (null != it)
                                 takePicture(this, it)
                         }
@@ -97,6 +103,8 @@ class MainActivity : AppCompatActivity() {
                         override fun onTick(millisUntilFinished: Long) {
                             counter++
                             text_calibration_counter.setText("" + counter + "/" + NUM_PHOTOS)
+                            singleLens.reset()
+                            singleLens.isSingleLensShot = false
                             twoLens.reset()
                             twoLens.isTwoLensShot = true
                             MainActivity.cameraParams.get(dualCamLogicalId).let {
@@ -108,6 +116,8 @@ class MainActivity : AppCompatActivity() {
                         }
                    }.start()
                 } else {
+                    singleLens.reset()
+                    singleLens.isSingleLensShot = false
                     twoLens.reset()
                     twoLens.isTwoLensShot = true
                     MainActivity.cameraParams.get(dualCamLogicalId).let {
@@ -327,6 +337,7 @@ class MainActivity : AppCompatActivity() {
         lateinit var sharedPrefs: SharedPreferences
 
         val twoLens: TwoLensCoordinator = TwoLensCoordinator()
+        val singleLens: SingleLensCoordinator = SingleLensCoordinator()
 
         val ORIENTATIONS = SparseIntArray()
 

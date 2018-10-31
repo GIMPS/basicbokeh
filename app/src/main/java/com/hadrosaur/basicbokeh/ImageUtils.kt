@@ -39,7 +39,9 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.core.view.ViewCompat.LAYER_TYPE_HARDWARE
 import androidx.core.view.ViewCompat.setLayerType
+import com.hadrosaur.basicbokeh.MainActivity.Companion.singleLens
 import com.hadrosaur.basicbokeh.MainActivity.Companion.twoLens
+import kotlinx.android.synthetic.main.activity_main.*
 import org.opencv.android.BaseLoaderCallback
 import org.opencv.android.LoaderCallbackInterface
 import org.opencv.android.OpenCVLoader
@@ -60,9 +62,6 @@ import java.util.*
 class ImageAvailableListener(private val activity: MainActivity, internal var params: CameraParams) : ImageReader.OnImageAvailableListener {
 
     override fun onImageAvailable(reader: ImageReader) {
-        // Orientation
-        val rotation = activity.getWindowManager().getDefaultDisplay().getRotation()
-        val capturedImageRotation = getOrientation(params, rotation)
 
         Log.d(MainActivity.LOG_TAG, "ImageReader. Image is available, about to post.")
         val image: Image = reader.acquireNextImage()
@@ -93,7 +92,11 @@ class ImageAvailableListener(private val activity: MainActivity, internal var pa
             Logd("Image Received, NOT a dual lens shot.")
             //Only process wideAngle for now
             if (MainActivity.wideAngleId == params.id) {
-                params.backgroundHandler?.post(ImageSaver(activity, image, params.capturedPhoto, capturedImageRotation, params.isFront, params))
+                singleLens.image = image
+                if (singleLens.shotDone)
+                    params.backgroundHandler?.post(ImageSaver(activity, params, image, params.capturedPhoto, params.isFront, params))
+                else
+                    return
             } else {
                 image.close()
             }
@@ -103,37 +106,28 @@ class ImageAvailableListener(private val activity: MainActivity, internal var pa
     }
 }
 
-class ImageSaver internal constructor(private val activity: MainActivity, private val image: Image?, private val imageView: ImageView?, private val rotation: Int, private val flip: Boolean, private val cameraParams: CameraParams) : Runnable {
+class ImageSaver internal constructor(private val activity: MainActivity, private val params: CameraParams, private val image: Image?, private val imageView: ImageView?, private val flip: Boolean, private val cameraParams: CameraParams) : Runnable {
 
     override fun run() {
+        // Orientation
+        val rotation = activity.getWindowManager().getDefaultDisplay().getRotation()
+        val capturedImageRotation = getOrientation(params, rotation)
+
         Logd( "ImageSaver. ImageSaver is running.")
 
         if (null == image)
             return
 
-        Logd( "ImageSaver. Image is not null.")
-
         val file = File(Environment.getExternalStorageDirectory(), MainActivity.SAVE_FILE)
 
-        Logd( "ImageSaver. Got file handle.")
-
-
         val buffer = image.planes[0].buffer
-
-        Logd( "ImageSaver. Got image buffer planes")
-
         val bytes = ByteArray(buffer.remaining())
-
-        Logd( "ImageSaver. image got the buffer remaining")
-
         buffer.get(bytes)
 
-        Logd( "Got the photo, converted to bytes. About to set image view.")
 
         val wasFaceDetected: Boolean =
             CameraMetadata.STATISTICS_FACE_DETECT_MODE_OFF != cameraParams.bestFaceDetectionMode
                 && cameraParams.hasFace
-
 
         //2 ideas
         //1. Single lens: cut out head, paste it on blurred/sepia'd background
@@ -144,19 +138,45 @@ class ImageSaver internal constructor(private val activity: MainActivity, privat
         val backgroundImageBitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, null)
         val foregroundImageBitmap = backgroundImageBitmap.copy(backgroundImageBitmap.config, true)
 
+        if (PrefHelper.getIntermediate(activity)) {
+            activity.runOnUiThread {
+                activity.imageIntermediate1.setImageBitmap(horizontalFlip(rotateBitmap(backgroundImageBitmap, -90f)))
+            }
+        }
+
         //TODO: Insert GrabCut logic here.
 
         //Foreground
         val croppedForeground = cropBitmap(activity, foregroundImageBitmap, cameraParams.faceBounds)
         WriteFile(activity, croppedForeground,"CroppedHead")
-        val scaledForeground = scaleBitmap(activity, croppedForeground, MainActivity.BLUR_SCALE_FACTOR)
-        val featheredForeground = featherBitmap(activity, scaledForeground, 0.15f)
+//        val scaledForeground = scaleBitmap(activity, croppedForeground, MainActivity.BLUR_SCALE_FACTOR)
+
+        if (PrefHelper.getIntermediate(activity)) {
+            activity.runOnUiThread {
+                activity.imageIntermediate2.setImageBitmap(horizontalFlip(rotateBitmap(croppedForeground, -90f)))
+            }
+        }
+
+        val featheredForeground = featherBitmap(activity, croppedForeground, 0.15f)
         WriteFile(activity, featheredForeground,"FeatheredHead")
+
+        if (PrefHelper.getIntermediate(activity)) {
+            activity.runOnUiThread {
+                activity.imageIntermediate3.setImageBitmap(horizontalFlip(rotateBitmap(featheredForeground, -90f)))
+            }
+        }
 
         val scaledBackground = scaleBitmap(activity, backgroundImageBitmap, MainActivity.BLUR_SCALE_FACTOR)
         val sepiaBackground = sepiaFilter(activity, scaledBackground)
         val blurredBackground = gaussianBlur(activity, sepiaBackground, MainActivity.GAUSSIAN_BLUR_RADIUS)
         WriteFile(activity, blurredBackground,"BlurredSepiaBackground")
+
+        if (PrefHelper.getIntermediate(activity)) {
+            activity.runOnUiThread {
+                activity.imageIntermediate4.setImageBitmap(horizontalFlip(rotateBitmap(blurredBackground, -90f)))
+            }
+        }
+
 
         if (wasFaceDetected) {
             val combinedBitmap = pasteBitmap(activity, blurredBackground, featheredForeground, cameraParams.faceBounds)
@@ -189,8 +209,6 @@ class ImageSaver internal constructor(private val activity: MainActivity, privat
             //Save to disk
             WriteFile(activity, finalBitmap,"BackgroundShot")
         }
-
-
 
         //2. Dual lens: generate depth map (but focal lenghts are different...)
         //See what happens if we try to combine things.
@@ -310,9 +328,10 @@ fun cropBitmap(activity: Activity, bitmap: Bitmap, rect: Rect) : Bitmap {
         Logd("In cropBitmap. Rect bounds incorrect, skipping crop. Left: " + rect.left + " Right: " + rect.right + " Top: " + rect.top + " Bottom: " + rect.bottom)
         return bitmap
     }
+    Logd("In cropBitmap. Rect bounds Left: " + rect.left + " Right: " + rect.right + " Top: " + rect.top + " Bottom: " + rect.bottom)
 
     val croppedBitmap = Bitmap.createBitmap(rect.right - rect.left, rect.bottom - rect.top, Bitmap.Config.ARGB_8888)
-    Canvas(croppedBitmap).drawBitmap(bitmap, 0f - rect.left, 0f -rect.top, null)
+    Canvas(croppedBitmap).drawBitmap(bitmap, 0f - rect.left, 0f - rect.top, null)
 
     return croppedBitmap
 }

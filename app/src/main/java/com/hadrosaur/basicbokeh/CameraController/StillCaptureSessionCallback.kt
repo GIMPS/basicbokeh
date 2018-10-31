@@ -7,6 +7,7 @@ import androidx.annotation.NonNull
 import com.hadrosaur.basicbokeh.*
 import com.hadrosaur.basicbokeh.MainActivity.Companion.dualCamLogicalId
 import com.hadrosaur.basicbokeh.MainActivity.Companion.normalLensId
+import com.hadrosaur.basicbokeh.MainActivity.Companion.singleLens
 import com.hadrosaur.basicbokeh.MainActivity.Companion.twoLens
 import com.hadrosaur.basicbokeh.MainActivity.Companion.wideAngleId
 
@@ -128,7 +129,14 @@ class StillCaptureSessionCallback(val activity: MainActivity, val params: Camera
                 twoLens.normalImage?.close()
                 twoLens.wideImage?.close()
             }
+        } else {
+            singleLens.shotDone = true
+            //ImageReady might have been recevied first
+            if (null != singleLens.image) {
+                params.backgroundHandler?.post(ImageSaver(activity, params, singleLens.image, params.capturedPhoto, params.isFront, params))
+            }
         }
+
 
         MainActivity.Logd("captureStillPicture onCaptureCompleted. CaptureEnd.")
         createCameraPreviewSession(activity, params.device!!, params)
