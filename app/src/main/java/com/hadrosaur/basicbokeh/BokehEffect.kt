@@ -11,6 +11,7 @@ import org.opencv.calib3d.StereoSGBM
 import org.opencv.core.CvType.*
 import org.opencv.imgproc.Imgproc
 import org.opencv.calib3d.Calib3d.stereoRectify
+import org.opencv.calib3d.StereoBM
 import java.nio.ByteBuffer
 import org.opencv.calib3d.StereoSGBM.MODE_HH4
 import org.opencv.core.*
@@ -164,13 +165,22 @@ fun DoBokeh(activity: MainActivity, twoLens: TwoLensCoordinator) : Bitmap {
         val combinedT2: Mat = Mat()
 
 //        multiply(poseTranslationNormal, poseRotationNormal, combinedT, -1.0)
-        multiply(poseRotationNormal, poseTranslationNormal, combinedT)
+//        multiply(poseRotationNormal, poseTranslationNormal, combinedT)
 //        multiply(poseRotationWide, poseTranslationWide, combinedT2, -1.0)
 //        t[i] = -1.0 * np.dot(r[i], t[i])
 
+        //To get T1 -> T2 we need to translate using -1 * innerproduct(R1 * T1) for each row. So:
+        // T[0] = -1 * innerProduct(row0(R1) * T1)
+        // T[1] = -1 * innerProduct(row1(R1) * T1)
+        // T[2] = -1 * innerProduct(row2(R1) * T1)
+        combinedT.put(0,0, -1.0 * poseRotationNormal.colRange(0, 1).dot(poseTranslationNormal))
+        combinedT.put(1,0, -1.0 * poseRotationNormal.colRange(1, 2).dot(poseTranslationNormal))
+        combinedT.put(2,0, -1.0 * poseRotationNormal.colRange(2, 3).dot(poseTranslationNormal))
+
         //To get our combined R, inverse poseRotationWide and multiply
+        Core.gemm(poseRotationWide.inv(DECOMP_SVD), poseRotationNormal, 1.0, Mat(), 0.0, combinedR)
 //        Core.gemm(poseRotationNormal.inv(DECOMP_SVD), poseRotationWide, 1.0, Mat(), 0.0, combinedR)
-        combinedR = poseRotationNormal
+//        combinedR = poseRotationNormal
 
         //To get our combined T, we take the difference
 //        subtract(poseTranslationWide, poseTranslationNormal, combinedT)
@@ -241,7 +251,7 @@ fun DoBokeh(activity: MainActivity, twoLens: TwoLensCoordinator) : Bitmap {
 
         stereoRectify(camMatrixNormal, distCoeffNormal, camMatrixWide, distCoeffWide,
                 finalNormalMat.size(), combinedR, combinedT, R1, R2, P1, P2, Q,
-                CALIB_ZERO_DISPARITY, -1.0, Size(), roi1, roi2)
+                CALIB_ZERO_DISPARITY, 0.0, Size(), roi1, roi2)
 //        CALIB_ZERO_DISPARITY, 0.96, Size(), null, null)
 
 /*        Logd("R1: " + R1[0,0].get(0) + ", " + R1[0,1].get(0) + ", " + R1[0,2].get(0) + ", " + R1[1,0].get(0) + ", " + R1[1,1].get(0) + ", " + R1[1,2].get(0) + ", " + R1[2,0].get(0) + ", " + R1[2,1].get(0) + ", " + R1[2,2].get(0))
@@ -350,6 +360,7 @@ fun DoBokeh(activity: MainActivity, twoLens: TwoLensCoordinator) : Bitmap {
     val stereoBM: StereoSGBM = StereoSGBM.create(sgbmMinDisparity, sgbmNumDisparities, sgbmBlockSize,
             sgbmP1, sgbmP2, sgbmDispMaxDiff, sgbmPreFilterCap, sgbmUniquenessRatio, sgbmSpeckleSize,
             sgbmSpeckleRange, sgbmMode)
+//    val stereoBM: StereoBM = StereoBM.create()
     stereoBM.compute(finalNormalMat, finalWideMat, disparityMat)
 
     val disparityBitmap: Bitmap = Bitmap.createBitmap(disparityMat.cols(), disparityMat.rows(), Bitmap.Config.ARGB_8888)

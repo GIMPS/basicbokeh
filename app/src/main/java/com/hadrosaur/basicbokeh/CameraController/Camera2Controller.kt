@@ -342,7 +342,7 @@ fun captureStillPicture(activity: MainActivity, params: CameraParams) {
 
             // Orientation
             val rotation = activity.getWindowManager().getDefaultDisplay().getRotation()
-            val capturedImageRotation = getOrientation(params, rotation)
+            var capturedImageRotation = getOrientation(params, rotation)
             params.captureBuilder?.set(CaptureRequest.JPEG_ORIENTATION, capturedImageRotation)
 
             try {
