@@ -18,6 +18,8 @@ import android.hardware.camera2.CameraCharacteristics
 import com.hadrosaur.basicbokeh.CameraController.CameraStateCallback
 import com.hadrosaur.basicbokeh.CameraController.FocusCaptureSessionCallback
 import com.hadrosaur.basicbokeh.MainActivity.Companion.Logd
+import com.hadrosaur.basicbokeh.MainActivity.Companion.normalLensId
+import com.hadrosaur.basicbokeh.MainActivity.Companion.wideAngleId
 import kotlin.collections.ArrayList
 
 
@@ -66,7 +68,7 @@ fun initializeCameras(activity: MainActivity) {
                     poseRotation = cameraChars.get(CameraCharacteristics.LENS_POSE_ROTATION)
                     poseTranslation = cameraChars.get(CameraCharacteristics.LENS_POSE_TRANSLATION)
 
-                    distortionModes = cameraChars.get(CameraCharacteristics.DISTORTION_CORRECTION_AVAILABLE_MODES)
+                    distortionModes = cameraChars.get(CameraCharacteristics.DISTORTION_CORRECTION_AVAILABLE_MODES) ?: intArrayOf(CameraMetadata.DISTORTION_CORRECTION_MODE_OFF)
 
 //                    for (mode in distortionModes) {
 //                        Logd("This camera has distortion mode: " + mode)
@@ -180,6 +182,10 @@ fun initializeCameras(activity: MainActivity) {
                         if (physicalCamera.equals(MainActivity.wideAngleId))
                             continue
 
+                        //If these are still set to the same camera, change them so we have two different cameras
+                        if (normalLensId == wideAngleId)
+                            normalLensId = physicalCamera
+
                         val tempLens: Float = MainActivity.cameraParams.get(physicalCamera)?.minDeltaFromNormal ?: MainActivity.INVALID_FOCAL_LENGTH
                         val normalLens: Float = MainActivity.cameraParams.get(MainActivity.normalLensId)?.minDeltaFromNormal ?: MainActivity.INVALID_FOCAL_LENGTH
                         if (tempLens < normalLens)
@@ -275,6 +281,7 @@ fun setupImageReader(activity: MainActivity, params: CameraParams) {
         //For some cameras, using the max preview size can conflict with big image captures
         //We just uses the smallest preview size to avoid this situation
         params.previewTextureView?.surfaceTexture?.setDefaultBufferSize(minSize.width, minSize.height)
+//        params.previewTextureView?.surfaceTexture?.setDefaultBufferSize(640, 480)
     }
 
 

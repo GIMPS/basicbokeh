@@ -2,6 +2,7 @@ package com.hadrosaur.basicbokeh.CameraController
 
 import android.graphics.Bitmap
 import android.hardware.camera2.*
+import android.os.Build
 import android.view.Surface
 import androidx.annotation.NonNull
 import com.hadrosaur.basicbokeh.*
@@ -133,7 +134,10 @@ class StillCaptureSessionCallback(val activity: MainActivity, val params: Camera
             singleLens.shotDone = true
             //ImageReady might have been recevied first
             if (null != singleLens.image) {
-                params.backgroundHandler?.post(ImageSaver(activity, params, singleLens.image, params.capturedPhoto, params.isFront, params))
+                if (28 <= Build.VERSION.SDK_INT)
+                    params.backgroundExecutor.execute(ImageSaver(activity, params, singleLens.image, params.capturedPhoto, params.isFront, params))
+                else
+                    params.backgroundHandler?.post(ImageSaver(activity, params, singleLens.image, params.capturedPhoto, params.isFront, params))
             }
         }
 

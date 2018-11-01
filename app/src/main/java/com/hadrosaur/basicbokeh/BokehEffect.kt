@@ -389,10 +389,13 @@ fun DoBokeh(activity: MainActivity, twoLens: TwoLensCoordinator) : Bitmap {
 fun floatArraytoDoubleArray(fArray: FloatArray) : DoubleArray {
     val dArray: DoubleArray = DoubleArray(fArray.size)
 //    Logd("floatArraytoDouble: START")
+
+    var output = ""
     for ((index, float) in fArray.withIndex()) {
         dArray.set(index, float.toDouble())
-//        Logd("floatArraytoDouble, val: " + float.toDouble())
+        output += "" + float.toDouble() + ", "
     }
+//    Logd(output)
 //    Logd("floatArraytoDouble: END")
     return dArray
 }

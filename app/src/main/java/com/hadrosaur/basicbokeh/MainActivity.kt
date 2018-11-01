@@ -278,7 +278,9 @@ class MainActivity : AppCompatActivity() {
         Logd( "In onResume")
 
         for (tempCameraParams in cameraParams) {
-            startBackgroundThread(tempCameraParams.value)
+            //In 28+ we use Executors so don't need the background thread
+            if (28 > Build.VERSION.SDK_INT)
+                startBackgroundThread(tempCameraParams.value)
 /*
             if (tempCameraParams.value.previewTextureView?.isAvailable == true) {
                 camera2OpenCamera(this, tempCameraParams.value)
@@ -293,7 +295,10 @@ class MainActivity : AppCompatActivity() {
     override fun onPause() {
         for (tempCameraParams in cameraParams) {
 //            closeCamera(tempCameraParams.value, this)
-            stopBackgroundThread(tempCameraParams.value)
+
+            //In 28+ we use Executors so don't need the background thread
+            if (28 > Build.VERSION.SDK_INT)
+                stopBackgroundThread(tempCameraParams.value)
         }
         super.onPause()
     }

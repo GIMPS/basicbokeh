@@ -72,7 +72,7 @@ fun createCameraPreviewSession(activity: MainActivity, camera: CameraDevice, par
 
             val sessionConfig = SessionConfiguration(SessionConfiguration.SESSION_REGULAR,
                     Arrays.asList(normalOutputConfigPreview, normalOutputConfigImageReader, wideOutputConfigPreview, wideOutputConfigImageReader),
-                    AsyncTask.THREAD_POOL_EXECUTOR, PreviewSessionStateCallback(activity, params))
+                    params.backgroundExecutor, PreviewSessionStateCallback(activity, params))
 
             params.previewBuilder = camera.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
             params.previewBuilder?.addTarget(normalSurface)
@@ -100,8 +100,18 @@ fun createCameraPreviewSession(activity: MainActivity, camera: CameraDevice, par
                 return
 
             // Here, we create a CameraCaptureSession for camera preview.
-            camera.createCaptureSession(Arrays.asList(surface, imageSurface),
-                    PreviewSessionStateCallback(activity, params), null)
+            if (Build.VERSION.SDK_INT >= 28) {
+                val sessionConfig = SessionConfiguration(SessionConfiguration.SESSION_REGULAR,
+                        Arrays.asList(OutputConfiguration(surface), OutputConfiguration(imageSurface)),
+                        params.backgroundExecutor, PreviewSessionStateCallback(activity, params))
+
+                camera.createCaptureSession(sessionConfig)
+
+            } else {
+                camera.createCaptureSession(Arrays.asList(surface, imageSurface),
+                        PreviewSessionStateCallback(activity, params), params.backgroundHandler)
+            }
+
         }
 
     } catch (e: CameraAccessException) {
@@ -126,11 +136,18 @@ fun camera2OpenCamera(activity: MainActivity, params: CameraParams?) {
         if (!MainActivity.dualCamLogicalId.equals("")
             && MainActivity.dualCamLogicalId.equals(params.id)) {
             Logd("Open Logical Camera backed by 2+ physical streams: " + MainActivity.dualCamLogicalId)
-            manager.openCamera(params.id, params.cameraCallback, params.backgroundHandler)
+
+            if (28 <= Build.VERSION.SDK_INT)
+                manager.openCamera(params.id, params.backgroundExecutor, params.cameraCallback)
+            else
+                manager.openCamera(params.id, params.cameraCallback, params.backgroundHandler)
 
         } else {
             Logd("openCamera: " + params.id)
-            manager.openCamera(params.id, params.cameraCallback, params.backgroundHandler)
+            if (28 <= Build.VERSION.SDK_INT)
+                manager.openCamera(params.id, params.backgroundExecutor, params.cameraCallback)
+            else
+                manager.openCamera(params.id, params.cameraCallback, params.backgroundHandler)
         }
 
     } catch (e: CameraAccessException) {
@@ -251,8 +268,13 @@ fun runPrecaptureSequence(activity: MainActivity, params: CameraParams) {
                     CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_START)
 
             params.state = STATE_WAITING_PRECAPTURE
-            params.captureSession?.capture(params.captureBuilder?.build(), params.captureCallback,
-                    params.backgroundHandler)
+
+            if (28 <= Build.VERSION.SDK_INT)
+                params.captureSession?.captureSingleRequest(params.captureBuilder?.build(), params.backgroundExecutor, params.captureCallback)
+            else
+                params.captureSession?.capture(params.captureBuilder?.build(), params.captureCallback,
+                        params.backgroundHandler)
+
         }
     } catch (e: CameraAccessException) {
         e.printStackTrace()
@@ -353,8 +375,11 @@ fun captureStillPicture(activity: MainActivity, params: CameraParams) {
             }
 
             //Do the capture
-            params.captureSession?.capture(params.captureBuilder?.build(), StillCaptureSessionCallback(activity, params),
-                    params.backgroundHandler)
+            if (28 <= Build.VERSION.SDK_INT)
+                params.captureSession?.captureSingleRequest(params.captureBuilder?.build(), params.backgroundExecutor, StillCaptureSessionCallback(activity, params))
+            else
+                params.captureSession?.capture(params.captureBuilder?.build(), StillCaptureSessionCallback(activity, params),
+                        params.backgroundHandler)
         }
     } catch (e: CameraAccessException) {
         e.printStackTrace()

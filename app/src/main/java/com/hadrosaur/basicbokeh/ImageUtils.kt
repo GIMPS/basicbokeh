@@ -36,6 +36,7 @@ import android.graphics.PorterDuffXfermode
 import android.hardware.camera2.CameraMetadata
 import android.hardware.camera2.CaptureRequest
 import android.net.Uri
+import android.os.Build
 import android.widget.Toast
 import androidx.core.view.ViewCompat.LAYER_TYPE_HARDWARE
 import androidx.core.view.ViewCompat.setLayerType
@@ -93,9 +94,12 @@ class ImageAvailableListener(private val activity: MainActivity, internal var pa
             //Only process wideAngle for now
             if (MainActivity.wideAngleId == params.id) {
                 singleLens.image = image
-                if (singleLens.shotDone)
-                    params.backgroundHandler?.post(ImageSaver(activity, params, image, params.capturedPhoto, params.isFront, params))
-                else
+                if (singleLens.shotDone) {
+                    if (28 <= Build.VERSION.SDK_INT)
+                        params.backgroundExecutor.execute(ImageSaver(activity, params, image, params.capturedPhoto, params.isFront, params))
+                    else
+                        params.backgroundHandler?.post(ImageSaver(activity, params, image, params.capturedPhoto, params.isFront, params))
+                } else
                     return
             } else {
                 image.close()

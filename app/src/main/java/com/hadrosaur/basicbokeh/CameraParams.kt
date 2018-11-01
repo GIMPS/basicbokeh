@@ -6,6 +6,7 @@ import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CaptureRequest
 import android.media.ImageReader
+import android.os.AsyncTask
 import android.os.Handler
 import android.os.HandlerThread
 import android.util.Size
@@ -15,6 +16,7 @@ import com.hadrosaur.basicbokeh.CameraController.CameraStateCallback
 import com.hadrosaur.basicbokeh.CameraController.FocusCaptureSessionCallback
 import com.hadrosaur.basicbokeh.CameraController.FocusCaptureSessionCallback.Companion.STATE_UNINITIALIZED
 import com.hadrosaur.basicbokeh.MainActivity.Companion.NO_APERTURE
+import java.util.concurrent.Executor
 
 class CameraParams {
     internal var id: String? = null
@@ -29,6 +31,7 @@ class CameraParams {
 
     internal var backgroundThread: HandlerThread? = null
     internal var backgroundHandler: Handler? = null
+    internal var backgroundExecutor: Executor = AsyncTask.THREAD_POOL_EXECUTOR
 
     internal var shutter: ImageView? = null
     internal var capturedPhoto: ImageView? = null

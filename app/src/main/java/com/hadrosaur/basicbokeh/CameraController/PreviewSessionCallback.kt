@@ -3,6 +3,7 @@ package com.hadrosaur.basicbokeh.CameraController
 import android.hardware.camera2.CameraAccessException
 import android.hardware.camera2.CameraCaptureSession
 import android.hardware.camera2.CaptureRequest
+import android.os.Build
 import androidx.annotation.NonNull
 import com.hadrosaur.basicbokeh.*
 import com.hadrosaur.basicbokeh.CameraController.FocusCaptureSessionCallback.Companion.STATE_PREVIEW
@@ -47,8 +48,12 @@ class PreviewSessionStateCallback(val activity: MainActivity, val params: Camera
             params.state = STATE_PREVIEW
 
             // Finally, we start displaying the camera preview.
-            params.captureSession?.setRepeatingRequest(params.previewBuilder?.build(),
-                    params.captureCallback, params.backgroundHandler)
+            if (28 <= Build.VERSION.SDK_INT)
+                params.captureSession?.setSingleRepeatingRequest(params.previewBuilder?.build(), params.backgroundExecutor,
+                    params.captureCallback)
+            else
+                params.captureSession?.setRepeatingRequest(params.previewBuilder?.build(),
+                        params.captureCallback, params.backgroundHandler)
 
         } catch (e: CameraAccessException) {
             MainActivity.Logd("Create Preview Session error: " + params.id)
