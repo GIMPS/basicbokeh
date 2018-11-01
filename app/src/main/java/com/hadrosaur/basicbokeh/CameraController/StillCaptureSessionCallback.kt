@@ -93,11 +93,12 @@ class StillCaptureSessionCallback(val activity: MainActivity, val params: Camera
             if (faces.isNotEmpty()) {
                 params.hasFace = true
                 params.faceBounds = faces.first().bounds
-//TODO                            expandBounds(faceBounds) //Include the whole head, not just the face
-                params.faceBounds.top -= (params.maxSize.height / 10)
-                params.faceBounds.bottom += (params.maxSize.height / 10)
-                params.faceBounds.right += (params.maxSize.width / 10)
-                params.faceBounds.left -= (params.maxSize.width / 10)
+
+                //TODO    This assumes we are taking max size stills. Need a Prefs setting.
+                params.faceBounds.top -= (params.maxSize.height / 8)
+                params.faceBounds.bottom += (params.maxSize.height / 8)
+                params.faceBounds.right += (params.maxSize.width / 8)
+                params.faceBounds.left -= (params.maxSize.width / 8)
             }
         }
 

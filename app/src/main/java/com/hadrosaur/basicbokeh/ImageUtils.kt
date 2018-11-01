@@ -115,7 +115,7 @@ class ImageSaver internal constructor(private val activity: MainActivity, privat
     override fun run() {
         // Orientation
         val rotation = activity.getWindowManager().getDefaultDisplay().getRotation()
-        val capturedImageRotation = getOrientation(params, rotation)
+        val capturedImageRotation = getOrientation(params, rotation).toFloat()
 
         Logd( "ImageSaver. ImageSaver is running.")
 
@@ -144,7 +144,7 @@ class ImageSaver internal constructor(private val activity: MainActivity, privat
 
         if (PrefHelper.getIntermediate(activity)) {
             activity.runOnUiThread {
-                activity.imageIntermediate1.setImageBitmap(horizontalFlip(rotateBitmap(backgroundImageBitmap, -90f)))
+                activity.imageIntermediate1.setImageBitmap(horizontalFlip(rotateBitmap(backgroundImageBitmap, capturedImageRotation)))
             }
         }
 
@@ -153,20 +153,20 @@ class ImageSaver internal constructor(private val activity: MainActivity, privat
         //Foreground
         val croppedForeground = cropBitmap(activity, foregroundImageBitmap, cameraParams.faceBounds)
         WriteFile(activity, croppedForeground,"CroppedHead")
-//        val scaledForeground = scaleBitmap(activity, croppedForeground, MainActivity.BLUR_SCALE_FACTOR)
+        val scaledForeground = scaleBitmap(activity, croppedForeground, MainActivity.BLUR_SCALE_FACTOR)
 
         if (PrefHelper.getIntermediate(activity)) {
             activity.runOnUiThread {
-                activity.imageIntermediate2.setImageBitmap(horizontalFlip(rotateBitmap(croppedForeground, -90f)))
+                activity.imageIntermediate2.setImageBitmap(horizontalFlip(rotateBitmap(scaledForeground, capturedImageRotation)))
             }
         }
 
-        val featheredForeground = featherBitmap(activity, croppedForeground, 0.15f)
+        val featheredForeground = featherBitmap(activity, scaledForeground, 0.20f)
         WriteFile(activity, featheredForeground,"FeatheredHead")
 
         if (PrefHelper.getIntermediate(activity)) {
             activity.runOnUiThread {
-                activity.imageIntermediate3.setImageBitmap(horizontalFlip(rotateBitmap(featheredForeground, -90f)))
+                activity.imageIntermediate3.setImageBitmap(horizontalFlip(rotateBitmap(featheredForeground, capturedImageRotation)))
             }
         }
 
@@ -177,14 +177,14 @@ class ImageSaver internal constructor(private val activity: MainActivity, privat
 
         if (PrefHelper.getIntermediate(activity)) {
             activity.runOnUiThread {
-                activity.imageIntermediate4.setImageBitmap(horizontalFlip(rotateBitmap(blurredBackground, -90f)))
+                activity.imageIntermediate4.setImageBitmap(horizontalFlip(rotateBitmap(blurredBackground, capturedImageRotation)))
             }
         }
 
 
         if (wasFaceDetected) {
             val combinedBitmap = pasteBitmap(activity, blurredBackground, featheredForeground, cameraParams.faceBounds)
-            val rotatedImageBitmap = rotateBitmap(combinedBitmap, rotation.toFloat())
+            val rotatedImageBitmap = rotateBitmap(combinedBitmap, capturedImageRotation.toFloat())
 
             var finalBitmap = rotatedImageBitmap
 
@@ -200,7 +200,7 @@ class ImageSaver internal constructor(private val activity: MainActivity, privat
 
         } else {
             Logd("No face detected.")
-            val rotatedImageBitmap = rotateBitmap(blurredBackground, rotation.toFloat())
+            val rotatedImageBitmap = rotateBitmap(blurredBackground, capturedImageRotation)
             var finalBitmap = rotatedImageBitmap
 
             //If front facing camera, flip the bitmap
@@ -235,6 +235,11 @@ fun rotateBitmap(original: Bitmap, degrees: Float): Bitmap {
 
     return rotatedBitmap;
     */
+
+    //If no rotation, no-op
+    if (0f == degrees)
+            return original
+
     val matrix = Matrix()
     matrix.postRotate(degrees)
     return Bitmap.createBitmap(original, 0, 0, original.width, original.height, matrix, true)
@@ -245,6 +250,11 @@ fun setCapturedPhoto(activity: Activity, imageView: ImageView?, bitmap: Bitmap) 
 }
 
 fun scaleBitmap(activity: Activity, bitmap: Bitmap, scaleFactor: Float): Bitmap {
+    //If no scale, no-op
+    if (1f == scaleFactor)
+        return bitmap
+
+
     val scaledWidth = Math.round(bitmap.width * scaleFactor)
     val scaledHeight = Math.round(bitmap.height * scaleFactor)
 
@@ -349,14 +359,16 @@ fun pasteBitmap(activity: Activity, background: Bitmap, foreground: Bitmap, rect
 }
 
 fun featherBitmap(activity: Activity, bitmap: Bitmap, borderSize: Float = 0.1f) : Bitmap {
-    val canvas = Canvas(bitmap)
+    val featheredBitmap = Bitmap.createBitmap(bitmap)
+
+    val canvas = Canvas(featheredBitmap)
     val framePaint = Paint()
     for (i in 0..3) {
-        setFramePaint(framePaint, i, bitmap.width.toFloat(), bitmap.height.toFloat(), borderSize)
+        setFramePaint(framePaint, i, featheredBitmap.width.toFloat(), featheredBitmap.height.toFloat(), borderSize)
         canvas.drawPaint(framePaint)
     }
 
-    return bitmap
+    return featheredBitmap
 }
 
 
@@ -379,7 +391,7 @@ private fun setFramePaint(p: Paint, side: Int, width: Float, height: Float, bord
     if (side == 0) {
         //left
         g1x = 0f
-        g1y = width / 2
+        g1y = height / 2
         g2x = bSize
         g2y = height / 2
         c1 = Color.TRANSPARENT
@@ -389,7 +401,7 @@ private fun setFramePaint(p: Paint, side: Int, width: Float, height: Float, bord
         //top
         g1x = width / 2
         g1y = 0f
-        g2x = height / 2
+        g2x = width / 2
         g2y = bSize
         c1 = Color.TRANSPARENT
         c2 = Color.BLACK
