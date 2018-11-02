@@ -178,7 +178,13 @@ class ImageSaver internal constructor(private val activity: MainActivity, privat
         }
 
         val scaledBackground = scaleBitmap(activity, backgroundImageBitmap, MainActivity.BLUR_SCALE_FACTOR)
-        val sepiaBackground = sepiaFilter(activity, scaledBackground)
+
+        var sepiaBackground = Bitmap.createBitmap(scaledBackground)
+        if (PrefHelper.getSepia(activity))
+            sepiaBackground = sepiaFilter(activity, scaledBackground)
+        else
+            sepiaBackground = monoBitmap(scaledBackground)
+
 //        val blurredBackground = gaussianBlur(activity, sepiaBackground, MainActivity.GAUSSIAN_BLUR_RADIUS)
         val blurredBackground = CVBlur(sepiaBackground)
 
@@ -324,6 +330,19 @@ fun drawBox(activity: Activity, cameraParams: CameraParams, bitmap: Bitmap): Bit
     canvas.drawBitmap(bitmap, 0f, 0f, null)
     canvas.drawRect(cameraParams.faceBounds, paint)
     return bitmapBoxed
+}
+
+fun monoBitmap(bitmap: Bitmap) : Bitmap {
+    val mono: Bitmap = Bitmap.createBitmap(bitmap)
+    val canvas: Canvas = Canvas(mono)
+    val matrix: ColorMatrix = ColorMatrix()
+    matrix.setSaturation(0f)
+
+    val paint: Paint = Paint()
+    paint.setColorFilter(ColorMatrixColorFilter(matrix))
+    canvas.drawBitmap(bitmap, 0f, 0f, paint)
+
+    return mono
 }
 
 fun horizontalFlip(bitmap: Bitmap) : Bitmap {
@@ -666,8 +685,14 @@ fun blackToTransparent(bitmap: Bitmap, cutoff: Int = 50) : Bitmap {
 fun CVBlur(bitmap: Bitmap, radius: Int = 71) : Bitmap {
     val inMat: Mat = Mat()
     val outMat: Mat = Mat()
+
+    var blurRadius = radius
+
+    //Only odd numbers for blur radius
+    if (0 == radius % 2) blurRadius++
+
     Utils.bitmapToMat(bitmap, inMat)
-    GaussianBlur(inMat, outMat, Size(radius.toDouble(), radius.toDouble()), 0.0, 0.0)
+    GaussianBlur(inMat, outMat, Size(blurRadius.toDouble(), blurRadius.toDouble()), 0.0, 0.0)
 
     val outputBitmap: Bitmap = Bitmap.createBitmap(outMat.width(), outMat.height(), Bitmap.Config.ARGB_8888)
     Utils.matToBitmap(outMat, outputBitmap)

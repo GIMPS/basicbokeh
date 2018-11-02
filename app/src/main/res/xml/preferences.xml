@@ -64,7 +64,8 @@
             android:defaultValue="true"
             android:key="@string/settings_bokeh_sepia_key"
             android:title="@string/settings_bokeh_sepia_title"
-            android:summary="@string/settings_bokeh_sepia_summary"
+            android:summaryOn="@string/settings_bokeh_sepia_summary_on"
+            android:summaryOff="@string/settings_bokeh_sepia_summary_off"
             />
 
         <CheckBoxPreference

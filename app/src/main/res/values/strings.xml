@@ -41,8 +41,9 @@
 
     <string name="settings_bokeh_category">Bokeh Settings</string>
     <string name="settings_bokeh_sepia_key">settings_bokeh_sepia</string>
-    <string name="settings_bokeh_sepia_title">Sepia</string>
-    <string name="settings_bokeh_sepia_summary">Use sepia filter for Bokeh background</string>
+    <string name="settings_bokeh_sepia_title">Sepia/Mono</string>
+    <string name="settings_bokeh_sepia_summary_on">Use sepia filter for Bokeh background</string>
+    <string name="settings_bokeh_sepia_summary_off">Use monochrome filter for Bokeh background</string>
 
     <string name="settings_bokeh_blur_key">settings_bokeh_blur</string>
     <string name="settings_bokeh_blur_title">Blur</string>
