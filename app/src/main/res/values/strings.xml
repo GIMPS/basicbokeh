@@ -22,6 +22,10 @@
     <string name="settings_intermediate_title">Show intermediate steps</string>
     <string name="settings_intermediate_summary">Show intermediate image processing steps as the final picture is created</string>
 
+    <string name="settings_save_intermediate_key">settings_save</string>
+    <string name="settings_save_intermediate_title">Save intermediate steps</string>
+    <string name="settings_save_intermediate_summary">Save intermediate image processing steps </string>
+
     <string name="settings_quality_key">settings_quality</string>
     <string name="settings_quality_title">JPG Quality</string>
 
@@ -44,6 +48,8 @@
     <string name="settings_bokeh_blur_title">Blur</string>
     <string name="settings_bokeh_blur_summary">Use blur filter for Bokeh background</string>
 
+    <string name="settings_bokeh_foreground_cutoff_key">settings_bokeh_foreground_cutoff</string>
+    <string name="settings_bokeh_foreground_cutoff_title">Foreground cutoff</string>
 
     <string name="settings_sgbm_category">SGBM Settings</string>
 
@@ -57,6 +63,30 @@
 
     <string name="settings_sgbm_numdisparities_key">settings_sgbm_numdisparities</string>
     <string name="settings_sgbm_numdisparities_title">Number of disparities</string>
+
+    <string name="settings_sgbm_p1_key">settings_p1</string>
+    <string name="settings_sgbm_p1_title">P1</string>
+
+    <string name="settings_sgbm_p2_key">settings_p2</string>
+    <string name="settings_sgbm_p2_title">P2</string>
+
+    <string name="settings_sgbm_prefilter_key">settings_prefilter</string>
+    <string name="settings_sgbm_prefilter_title">Prefilter Cap</string>
+
+    <string name="settings_sgbm_specklesize_key">settings_specklesize</string>
+    <string name="settings_sgbm_specklesize_title">Speckle Size</string>
+
+    <string name="settings_sgbm_specklerange_key">settings_specklerange</string>
+    <string name="settings_sgbm_specklerange_title">Speckle Range</string>
+
+    <string name="settings_wls_lambda_key">settings_wls_lambda</string>
+    <string name="settings_wls_lambda_title">WLS Filter Lambda</string>
+
+    <string name="settings_wls_sigma_key">settings_wls_sigma</string>
+    <string name="settings_wls_sigma_title">WLS Filter Sigma</string>
+
+    <string name="settings_wls_invert_key">settings_wls_invert</string>
+    <string name="settings_wls_invert_title">Invert WLS Filter</string>
 
     <!--
         <string name="settings_t_key">settings_</string>

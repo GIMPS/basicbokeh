@@ -3,8 +3,12 @@
 //
 package org.opencv.ximgproc;
 
+import org.opencv.calib3d.StereoBM;
+import org.opencv.calib3d.StereoMatcher;
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.Rect;
+import org.opencv.osgi.OpenCVInterface;
 import org.opencv.ximgproc.DisparityFilter;
 
 // C++: class DisparityWLSFilter
@@ -17,9 +21,12 @@ public class DisparityWLSFilter extends DisparityFilter {
     // internal usage only
     public static DisparityWLSFilter __fromPtr__(long addr) { return new DisparityWLSFilter(addr); }
 
-    //
-    // C++:  Mat getConfidenceMap()
-    //
+    public DisparityWLSFilter createDisparityWLSFilter(StereoMatcher matcher_left)
+    {
+        DisparityWLSFilter filter = createDisparityWLSFilter_0(matcher_left);
+
+        return filter;
+    }
 
     //javadoc: DisparityWLSFilter::getConfidenceMap()
     public  Mat getConfidenceMap()
@@ -163,6 +170,9 @@ public class DisparityWLSFilter extends DisparityFilter {
     }
 
 
+
+    // C++:  DisparityWLSFilter createDisparityWLSFilter()
+    private static native DisparityWLSFilter createDisparityWLSFilter_0(StereoMatcher nativeObj);
 
     // C++:  Mat getConfidenceMap()
     private static native long getConfidenceMap_0(long nativeObj);

@@ -152,7 +152,11 @@ class ImageSaver internal constructor(private val activity: MainActivity, privat
 
         //Foreground
         val croppedForeground = cropBitmap(activity, foregroundImageBitmap, cameraParams.faceBounds)
-        WriteFile(activity, croppedForeground,"CroppedHead")
+
+        if (PrefHelper.getSaveIntermediate(activity)) {
+            WriteFile(activity, croppedForeground,"CroppedHead")
+        }
+
         val scaledForeground = scaleBitmap(activity, croppedForeground, MainActivity.BLUR_SCALE_FACTOR)
 
         if (PrefHelper.getIntermediate(activity)) {
@@ -162,7 +166,10 @@ class ImageSaver internal constructor(private val activity: MainActivity, privat
         }
 
         val featheredForeground = featherBitmap(activity, scaledForeground, 0.20f)
-        WriteFile(activity, featheredForeground,"FeatheredHead")
+
+        if (PrefHelper.getSaveIntermediate(activity)) {
+            WriteFile(activity, featheredForeground,"FeatheredHead")
+        }
 
         if (PrefHelper.getIntermediate(activity)) {
             activity.runOnUiThread {
@@ -172,15 +179,18 @@ class ImageSaver internal constructor(private val activity: MainActivity, privat
 
         val scaledBackground = scaleBitmap(activity, backgroundImageBitmap, MainActivity.BLUR_SCALE_FACTOR)
         val sepiaBackground = sepiaFilter(activity, scaledBackground)
-        val blurredBackground = gaussianBlur(activity, sepiaBackground, MainActivity.GAUSSIAN_BLUR_RADIUS)
-        WriteFile(activity, blurredBackground,"BlurredSepiaBackground")
+//        val blurredBackground = gaussianBlur(activity, sepiaBackground, MainActivity.GAUSSIAN_BLUR_RADIUS)
+        val blurredBackground = CVBlur(sepiaBackground)
+
+        if (PrefHelper.getSaveIntermediate(activity)) {
+            WriteFile(activity, blurredBackground,"BlurredSepiaBackground")
+        }
 
         if (PrefHelper.getIntermediate(activity)) {
             activity.runOnUiThread {
                 activity.imageIntermediate4.setImageBitmap(horizontalFlip(rotateBitmap(blurredBackground, capturedImageRotation)))
             }
         }
-
 
         if (wasFaceDetected) {
             val combinedBitmap = pasteBitmap(activity, blurredBackground, featheredForeground, cameraParams.faceBounds)
@@ -196,7 +206,9 @@ class ImageSaver internal constructor(private val activity: MainActivity, privat
             setCapturedPhoto(activity, imageView, finalBitmap)
 
             //Save to disk
-            WriteFile(activity, finalBitmap,"FloatingHeadShot")
+            if (PrefHelper.getSaveIntermediate(activity)) {
+                WriteFile(activity, finalBitmap,"FloatingHeadShot")
+            }
 
         } else {
             Logd("No face detected.")
@@ -211,7 +223,9 @@ class ImageSaver internal constructor(private val activity: MainActivity, privat
             setCapturedPhoto(activity, imageView, finalBitmap)
 
             //Save to disk
-            WriteFile(activity, finalBitmap,"BackgroundShot")
+            if (PrefHelper.getSaveIntermediate(activity)) {
+                WriteFile(activity, finalBitmap,"BackgroundShot")
+            }
         }
 
         //2. Dual lens: generate depth map (but focal lenghts are different...)
@@ -348,6 +362,11 @@ fun cropBitmap(activity: Activity, bitmap: Bitmap, rect: Rect) : Bitmap {
     Canvas(croppedBitmap).drawBitmap(bitmap, 0f - rect.left, 0f - rect.top, null)
 
     return croppedBitmap
+}
+
+fun pasteBitmap(activity: Activity, background: Bitmap, foreground: Bitmap) : Bitmap {
+    val rect: Rect = Rect(0, 0, background.width, background.height)
+    return pasteBitmap(activity, background, foreground, rect)
 }
 
 fun pasteBitmap(activity: Activity, background: Bitmap, foreground: Bitmap, rect: Rect) : Bitmap {
@@ -592,21 +611,26 @@ fun applyMask(activity: MainActivity, image: Bitmap, mask: Bitmap) : Bitmap {
     return maskedImage
 }
 
+fun hardNormalizeDepthMap(activity: MainActivity, inputBitmap: Bitmap) : Bitmap {
+    return hardNormalizeDepthMap(activity, inputBitmap, PrefHelper.getForegroundCutoff(activity), 100.0)
+}
+
 //Normalize depthmap to be mostly white or black, with steep curve at cutoff between 0 - 255
-fun hardNormalizeDepthMap(activity: Activity, inputBitmap: Bitmap, cutoff: Double = 80.0, blurSize: Double = 100.0) : Bitmap {
+fun hardNormalizeDepthMap(activity: Activity, inputBitmap: Bitmap, cutoff: Double, blurSize: Double = 100.0) : Bitmap {
     val inputMat: Mat = Mat()
     Utils.bitmapToMat(inputBitmap, inputMat)
     val inputMat1C = Mat()
 //    inputMat.convertTo(inputMat1C, CV_8UC1) //Make sure the bit depth is right
     Imgproc.cvtColor(inputMat, inputMat1C, CV_8UC1) //Make sure the channels are right
 
-    val outputMat = hardNormalizeDepthMap(inputMat)
+    val outputMat = hardNormalizeDepthMap(inputMat, cutoff, blurSize)
     var outputBitmap: Bitmap = Bitmap.createBitmap(outputMat.cols(), outputMat.rows(), Bitmap.Config.ARGB_8888)
     Utils.matToBitmap(outputMat, outputBitmap)
 
     outputBitmap = blackToTransparent(outputBitmap)
-    outputBitmap = gaussianBlur(activity, outputBitmap, 25f)
-    outputBitmap = gaussianBlur(activity, outputBitmap, 25f)
+    outputBitmap = CVBlur(outputBitmap)
+//    outputBitmap = gaussianBlur(activity, outputBitmap, 25f)
+//    outputBitmap = gaussianBlur(activity, outputBitmap, 25f)
 
     return outputBitmap
 }
@@ -637,4 +661,16 @@ fun blackToTransparent(bitmap: Bitmap, cutoff: Int = 50) : Bitmap {
 
     bitmap.setPixels(pixels, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
     return  bitmap
+}
+
+fun CVBlur(bitmap: Bitmap, radius: Int = 71) : Bitmap {
+    val inMat: Mat = Mat()
+    val outMat: Mat = Mat()
+    Utils.bitmapToMat(bitmap, inMat)
+    GaussianBlur(inMat, outMat, Size(radius.toDouble(), radius.toDouble()), 0.0, 0.0)
+
+    val outputBitmap: Bitmap = Bitmap.createBitmap(outMat.width(), outMat.height(), Bitmap.Config.ARGB_8888)
+    Utils.matToBitmap(outMat, outputBitmap)
+
+    return outputBitmap
 }

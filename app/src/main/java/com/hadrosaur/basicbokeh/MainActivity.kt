@@ -276,6 +276,7 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         Logd( "In onResume")
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         for (tempCameraParams in cameraParams) {
             //In 28+ we use Executors so don't need the background thread
@@ -293,6 +294,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onPause() {
+        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         for (tempCameraParams in cameraParams) {
 //            closeCamera(tempCameraParams.value, this)
 

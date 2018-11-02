@@ -1,8 +1,7 @@
 package com.hadrosaur.basicbokeh
 
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.os.Build
+import com.hadrosaur.basicbokeh.MainActivity.Companion.BLUR_SCALE_FACTOR
 import com.hadrosaur.basicbokeh.MainActivity.Companion.Logd
 import kotlinx.android.synthetic.main.activity_main.*
 import org.opencv.android.Utils
@@ -17,8 +16,9 @@ import org.opencv.calib3d.StereoSGBM.MODE_HH4
 import org.opencv.core.*
 import org.opencv.core.Core.*
 import org.opencv.imgproc.Imgproc.*
-import org.opencv.ximgproc.DisparityFilter
-import org.opencv.ximgproc.DisparityWLSFilter
+import org.opencv.ximgproc.Ximgproc.createDisparityWLSFilter
+import android.graphics.*
+import org.opencv.core.Rect
 
 
 fun DoBokeh(activity: MainActivity, twoLens: TwoLensCoordinator) : Bitmap {
@@ -63,6 +63,9 @@ fun DoBokeh(activity: MainActivity, twoLens: TwoLensCoordinator) : Bitmap {
         return tempNormalBitmap
     }
 
+//    tempWideBitmap.recycle()
+//    tempNormalBitmap.recycle()
+
 //    var resizedNormalMat: Mat = Mat(croppedWideMat.rows(), croppedWideMat.cols(), CV_8UC1)
 //    Imgproc.resize(normalMat, resizedNormalMat, resizedNormalMat.size(), 0.0, 0.0, Imgproc.INTER_LINEAR)
 
@@ -86,8 +89,10 @@ fun DoBokeh(activity: MainActivity, twoLens: TwoLensCoordinator) : Bitmap {
     val controlNormalBitmap: Bitmap = Bitmap.createBitmap(normalMat.cols(), normalMat.rows(), Bitmap.Config.ARGB_8888)
     Utils.matToBitmap(normalMat, controlNormalBitmap)
 
-    WriteFile(activity, controlBitmap,"WideShot")
-    WriteFile(activity, controlNormalBitmap, "NormalShot")
+    if (PrefHelper.getSaveIntermediate(activity)) {
+        WriteFile(activity, controlBitmap,"WideShot")
+        WriteFile(activity, controlNormalBitmap, "NormalShot")
+    }
 
     //Convert the Mats to 1-channel greyscale so we can compute depth maps
     var finalNormalMat: Mat = Mat(normalMat.rows(), normalMat.cols(), CV_8UC1)
@@ -249,18 +254,19 @@ fun DoBokeh(activity: MainActivity, twoLens: TwoLensCoordinator) : Bitmap {
 
 
 
+
         stereoRectify(camMatrixNormal, distCoeffNormal, camMatrixWide, distCoeffWide,
                 finalNormalMat.size(), combinedR, combinedT, R1, R2, P1, P2, Q,
                 CALIB_ZERO_DISPARITY, 0.0, Size(), roi1, roi2)
 //        CALIB_ZERO_DISPARITY, 0.96, Size(), null, null)
 
-/*        Logd("R1: " + R1[0,0].get(0) + ", " + R1[0,1].get(0) + ", " + R1[0,2].get(0) + ", " + R1[1,0].get(0) + ", " + R1[1,1].get(0) + ", " + R1[1,2].get(0) + ", " + R1[2,0].get(0) + ", " + R1[2,1].get(0) + ", " + R1[2,2].get(0))
+        Logd("R1: " + R1[0,0].get(0) + ", " + R1[0,1].get(0) + ", " + R1[0,2].get(0) + ", " + R1[1,0].get(0) + ", " + R1[1,1].get(0) + ", " + R1[1,2].get(0) + ", " + R1[2,0].get(0) + ", " + R1[2,1].get(0) + ", " + R1[2,2].get(0))
         Logd("R2: " + R2[0,0].get(0) + ", " + R2[0,1].get(0) + ", " + R2[0,2].get(0) + ", " + R2[1,0].get(0) + ", " + R2[1,1].get(0) + ", " + R2[1,2].get(0) + ", " + R2[2,0].get(0) + ", " + R2[2,1].get(0) + ", " + R2[2,2].get(0))
         Logd("P1: " + P1[0,0].get(0) + ", " + P1[0,1].get(0) + ", " + P1[0,2].get(0) + ", " + P1[0,3].get(0) + ", " + P1[1,0].get(0) + ", " + P1[1,1].get(0) + ", " + P1[1,2].get(0) + ", " + P1[1,3].get(0) + ", "
                 + P1[2,0].get(0) + ", " + P1[2,1].get(0) + ", " + P1[2,2].get(0) + ", " + P1[2,3].get(0))
         Logd("P2: " + P2[0,0].get(0) + ", " + P2[0,1].get(0) + ", " + P2[0,2].get(0) + ", " + P2[0,3].get(0) + ", " + P2[1,0].get(0) + ", " + P2[1,1].get(0) + ", " + P2[1,2].get(0) + ", " + P2[1,3].get(0) + ", "
                 + P2[2,0].get(0) + ", " + P2[2,1].get(0) + ", " + P2[2,2].get(0) + ", " + P2[2,3].get(0))
-*/
+
 /*
         //Hardcode R P and Q values from manual calibration
         R1.put(0, 0, 9.8949548377632979e-01, 2.5158349059318304e-02,
@@ -305,6 +311,7 @@ fun DoBokeh(activity: MainActivity, twoLens: TwoLensCoordinator) : Bitmap {
         var rectifiedNormalMat: Mat = Mat()
         var rectifiedWideMat: Mat = Mat()
 
+
         remap(finalNormalMat, rectifiedNormalMat, mapNormal1, mapNormal2, INTER_LINEAR);
         remap(finalWideMat, rectifiedWideMat, mapWide1, mapWide2, INTER_LINEAR);
 
@@ -326,64 +333,206 @@ fun DoBokeh(activity: MainActivity, twoLens: TwoLensCoordinator) : Bitmap {
         val rectifiedWideBitmap: Bitmap = Bitmap.createBitmap(rectifiedWideMat.cols(), rectifiedWideMat.rows(), Bitmap.Config.ARGB_8888)
         Utils.matToBitmap(rectifiedWideMat, rectifiedWideBitmap)
 
-        WriteFile(activity, rectifiedNormalBitmap, "RectifiedNormalShot")
-        WriteFile(activity, rectifiedWideBitmap,"RectifiedWideShot")
+        if (PrefHelper.getSaveIntermediate(activity)) {
+            WriteFile(activity, rectifiedNormalBitmap, "RectifiedNormalShot")
+            WriteFile(activity, rectifiedWideBitmap,"RectifiedWideShot")
+        }
 
         if (PrefHelper.getIntermediate(activity)) {
             activity.runOnUiThread {
-                activity.imageIntermediate3.setImageBitmap(horizontalFlip(rotateBitmap(rectifiedNormalBitmap,-90f)))
-                activity.imageIntermediate4.setImageBitmap(horizontalFlip(rotateBitmap(rectifiedWideBitmap, -90f)))
+                activity.imageIntermediate3.setImageBitmap(rotateBitmap(rectifiedNormalBitmap,-90f))
+                activity.imageIntermediate4.setImageBitmap(rotateBitmap(rectifiedWideBitmap, -90f))
             }
         }
-
 
         finalNormalMat = rectifiedNormalMat
         finalWideMat = rectifiedWideMat
     }
 
-    val sgbmWinSize = 19
+    val sgbmWinSize = PrefHelper.getWindowSize(activity)
     val sgbmBlockSize = sgbmWinSize
     val sgbmMinDisparity = 0
-    val sgbmNumDisparities = 16
-    val sgbmP1 = 1600
-    val sgbmP2 = 6000
+    val sgbmNumDisparities = PrefHelper.getNumDisparities(activity)
+    val sgbmP1 = PrefHelper.getP1(activity)
+    val sgbmP2 = PrefHelper.getP1(activity)
     val sgbmDispMaxDiff = -1
-    val sgbmPreFilterCap = 44
+    val sgbmPreFilterCap = PrefHelper.getPrefilter(activity)
     val sgbmUniquenessRatio = 0
-    val sgbmSpeckleSize = 212
-    val sgbmSpeckleRange = 2
-//    val sgbmMode = StereoSGBM.MODE_HH4
-    val sgbmMode = StereoSGBM.MODE_SGBM
+    val sgbmSpeckleSize = PrefHelper.getSpecklesize(activity)
+    val sgbmSpeckleRange = PrefHelper.getSpecklerange(activity)
+    val sgbmMode = StereoSGBM.MODE_HH4
+//    val sgbmMode = StereoSGBM.MODE_SGBM
 
-    val disparityMat: Mat = Mat(normalMat.rows(), normalMat.cols(), CV_8UC1)
+
+    val resizedNormalMat: Mat = Mat()
+    val resizedWideMat: Mat = Mat()
+
+    //Scale down so we have a chance of not burning through the heap
+    resize(finalNormalMat, resizedNormalMat, Size((finalNormalMat.width() / 2).toDouble(), (finalNormalMat.height() /2).toDouble()))
+    resize(finalWideMat, resizedWideMat, Size((finalWideMat.width() / 2).toDouble(), (finalWideMat.height() /2).toDouble()))
+
+    val rotatedNormalMat: Mat = Mat()
+    val rotatedWideMat: Mat = Mat()
+
+    rotate(resizedNormalMat, rotatedNormalMat, Core.ROTATE_90_CLOCKWISE)
+    rotate(resizedWideMat, rotatedWideMat, Core.ROTATE_90_CLOCKWISE)
+
+    val disparityMat: Mat = Mat(rotatedNormalMat.rows(), rotatedNormalMat.cols(), CV_8UC1)
+    val disparityMat2: Mat = Mat(rotatedNormalMat.rows(), rotatedNormalMat.cols(), CV_8UC1)
 
     val stereoBM: StereoSGBM = StereoSGBM.create(sgbmMinDisparity, sgbmNumDisparities, sgbmBlockSize,
             sgbmP1, sgbmP2, sgbmDispMaxDiff, sgbmPreFilterCap, sgbmUniquenessRatio, sgbmSpeckleSize,
             sgbmSpeckleRange, sgbmMode)
+    val stereoBM2: StereoSGBM = StereoSGBM.create(sgbmMinDisparity, sgbmNumDisparities, sgbmBlockSize,
+            sgbmP1, sgbmP2, sgbmDispMaxDiff, sgbmPreFilterCap, sgbmUniquenessRatio, sgbmSpeckleSize,
+            sgbmSpeckleRange, sgbmMode)
+
 //    val stereoBM: StereoBM = StereoBM.create()
-    stereoBM.compute(finalNormalMat, finalWideMat, disparityMat)
+//    val stereoBM2: StereoBM = StereoBM.create()
+
+    if (PrefHelper.getInvertFilter(activity)) {
+        stereoBM.compute(rotatedNormalMat, rotatedWideMat, disparityMat2)
+        stereoBM2.compute(rotatedWideMat, rotatedNormalMat, disparityMat)
+    } else {
+        stereoBM.compute(rotatedNormalMat, rotatedWideMat, disparityMat)
+        stereoBM2.compute(rotatedWideMat, rotatedNormalMat, disparityMat2)
+    }
 
     val disparityBitmap: Bitmap = Bitmap.createBitmap(disparityMat.cols(), disparityMat.rows(), Bitmap.Config.ARGB_8888)
+    val disparityBitmap2: Bitmap = Bitmap.createBitmap(disparityMat2.cols(), disparityMat2.rows(), Bitmap.Config.ARGB_8888)
 
+    normalize(disparityMat, disparityMat, 0.0, 255.0, NORM_MINMAX, CV_8U)
+    normalize(disparityMat2, disparityMat2, 0.0, 255.0, NORM_MINMAX, CV_8U)
 
+    val disparityMatConverted1: Mat = Mat()
+    val disparityMatConverted2: Mat = Mat()
+
+//    disparityMat.convertTo(disparityMatConverted1, CV_8UC1, 255 / (sgbmNumDisparities * 16.0));
+//    disparityMat2.convertTo(disparityMatConverted2, CV_8UC1, 255 / (sgbmNumDisparities * 16.0));
+    disparityMat.convertTo(disparityMatConverted1, CV_8UC1, 1.0 );
+    disparityMat2.convertTo(disparityMatConverted2, CV_8UC1, 1.0);
+    Utils.matToBitmap(disparityMatConverted1, disparityBitmap)
+    Utils.matToBitmap(disparityMatConverted2, disparityBitmap2)
+
+    if (PrefHelper.getIntermediate(activity)) {
+        activity.runOnUiThread {
+            activity.imageIntermediate1.setImageBitmap(rotateBitmap(disparityBitmap,180f))
+            activity.imageIntermediate2.setImageBitmap(rotateBitmap(disparityBitmap2, 180f))
+        }
+    }
+    if (PrefHelper.getSaveIntermediate(activity)) {
+        WriteFile(activity, rotateBitmap(disparityBitmap,180f), "DisparityMap")
+        WriteFile(activity, rotateBitmap(disparityBitmap2,180f), "DisparityMap2")
+    }
+
+    val disparityMatFiltered: Mat = Mat(rotatedNormalMat.rows(), rotatedNormalMat.cols(), CV_8UC1)
+    val disparityWLSFilter = createDisparityWLSFilter(stereoBM)
+    disparityWLSFilter.lambda = PrefHelper.getLambda(activity)
+    disparityWLSFilter.sigmaColor = PrefHelper.getSigma(activity)
+    disparityWLSFilter.filter(disparityMat, rotatedNormalMat, disparityMatFiltered, disparityMat2, Rect(0, 0, disparityMat.cols(), disparityMat.rows()), rotatedWideMat)
+
+    /*
+    var filteredValues = ""
+    for (row in 0 until disparityMatFiltered.rows()) {
+        for (col in 0 until disparityMatFiltered.cols()) {
+            if ( 0.0 == disparityMatFiltered.get(row, col)[0])
+                continue
+            Logd("" + disparityMatFiltered.get(row, col)[0] + ", ")
+        }
+    }*/
 //    Utils.matToBitmap(disparityMat, disparityBitmap)
-    var rotatedDisparityBitmap: Bitmap = rotateBitmap(disparityBitmap, -90f)
 //    WriteFile(activity, disparityBitmap, "DisparityMap")
 
-
-    val disparityMatConverted: Mat = Mat(disparityMat.rows(), disparityMat.cols(), CV_8UC1)
-    disparityMat.convertTo(disparityMatConverted, CV_8UC1, 255 / (sgbmNumDisparities * 16.0));
-//    Imgproc.cvtColor(disparityMat, disparityMatConverted, CV_8UC1)
-
+    val disparityMapFilteredNormalized: Mat = Mat()
+    normalize(disparityMatFiltered, disparityMapFilteredNormalized, 0.0, 255.0, NORM_MINMAX, CV_8U)
+    val disparityMatFilteredConverted: Mat = Mat(disparityMapFilteredNormalized.rows(), disparityMapFilteredNormalized.cols(), CV_8UC1)
+    disparityMapFilteredNormalized.convertTo(disparityMatFilteredConverted, CV_8UC1)
 
 //    Logd("Disparity Cols: " + disparityMatConverted.cols() + " Rows: " + disparityMatConverted.rows() + " Width: " + disparityBitmap.width + " Height: " + disparityBitmap.height)
 //    Logd("Source type: " + disparityMatConverted.type() + " is it: " + CV_8UC1 + " or " + CV_8UC3 + " or " + CV_8UC4)
 
-    Utils.matToBitmap(disparityMatConverted, disparityBitmap)
-    rotatedDisparityBitmap = rotateBitmap(disparityBitmap, -90f)
-    WriteFile(activity, rotatedDisparityBitmap, "DisparityMapNormalized")
+    val disparityBitmapFiltered: Bitmap = Bitmap.createBitmap(disparityMatFilteredConverted.cols(), disparityMatFilteredConverted.rows(), Bitmap.Config.ARGB_8888)
+    Utils.matToBitmap(disparityMatFilteredConverted, disparityBitmapFiltered)
+    val disparityBitmapFilteredFinal = rotateBitmap(disparityBitmapFiltered, 180f)
 
-    return horizontalFlip(rotatedDisparityBitmap)
+    if (PrefHelper.getSaveIntermediate(activity)) {
+        WriteFile(activity, disparityBitmapFilteredFinal, "DisparityMapFilteredNormalized")
+    }
+    if (PrefHelper.getIntermediate(activity)) {
+        activity.runOnUiThread {
+            activity.imageIntermediate3.setImageBitmap(disparityBitmapFilteredFinal)
+        }
+    }
+
+    val normalizedMaskBitmap = Bitmap.createBitmap(disparityMatFilteredConverted.cols(), disparityMatFilteredConverted.rows(), Bitmap.Config.ARGB_8888)
+    Utils.matToBitmap(disparityMatFilteredConverted, normalizedMaskBitmap)
+
+    val hardNormalizedMaskBitmap = hardNormalizeDepthMap(activity, normalizedMaskBitmap)
+
+    if (PrefHelper.getIntermediate(activity)) {
+        //Lay it on a black background
+        val black = Bitmap.createBitmap(hardNormalizedMaskBitmap.width, hardNormalizedMaskBitmap.height, Bitmap.Config.ARGB_8888)
+        val blackCanvas = Canvas(black)
+        val paint = Paint()
+        paint.setColor(Color.BLACK)
+        blackCanvas.drawRect(0f, 0f, hardNormalizedMaskBitmap.width.toFloat(), hardNormalizedMaskBitmap.height.toFloat(), paint)
+        activity.runOnUiThread {
+            activity.imageIntermediate4.setImageBitmap(pasteBitmap(activity, black, rotateBitmap(hardNormalizedMaskBitmap,180f)))
+        }
+    }
+    if (PrefHelper.getSaveIntermediate(activity)) {
+        WriteFile(activity, rotateBitmap(hardNormalizedMaskBitmap,180f), "HardMask")
+    }
+
+
+/*    val rotatedOutputBitmap: Bitmap = Bitmap.createBitmap(rotatedNormalMat.cols(), rotatedNormalMat.rows(), Bitmap.Config.ARGB_8888)
+    Utils.matToBitmap(rotatedNormalMat, rotatedOutputBitmap)
+
+    val nicelyMasked = applyMask(activity, rotatedOutputBitmap, hardNormalizedMaskBitmap)
+    WriteFile(activity, nicelyMasked, "NicelyMasked")
+*/
+    val smallNormalBitmap = scaleBitmap(activity, tempNormalBitmap, 0.5f)
+    var rotatedSmallNormalBitmap = rotateBitmap(smallNormalBitmap, 90f)
+    rotatedSmallNormalBitmap = horizontalFlip(rotatedSmallNormalBitmap) //Not sure why this is flipped, need to check
+    val nicelyMaskedColour = applyMask(activity, rotatedSmallNormalBitmap, hardNormalizedMaskBitmap)
+
+    if (PrefHelper.getSaveIntermediate(activity)) {
+        WriteFile(activity, nicelyMaskedColour, "NicelyMaskedColour")
+    }
+
+    var backgroundBitmap = sepiaFilter(activity, rotatedSmallNormalBitmap)
+    backgroundBitmap = CVBlur(backgroundBitmap)
+//    backgroundBitmap = gaussianBlur(activity, backgroundBitmap, BLUR_SCALE_FACTOR)
+//    backgroundBitmap = gaussianBlur(activity, backgroundBitmap, BLUR_SCALE_FACTOR)
+
+    if (PrefHelper.getSaveIntermediate(activity)) {
+        WriteFile(activity, backgroundBitmap, "Background")
+    }
+
+    val finalImage = pasteBitmap(activity, backgroundBitmap, nicelyMaskedColour, android.graphics.Rect(0, 0, backgroundBitmap.width, backgroundBitmap.height))
+
+    if (PrefHelper.getSaveIntermediate(activity)) {
+        WriteFile(activity, finalImage, "FinalImage")
+    }
+
+    //Free everything we can
+    normalMat.release()
+    wideMat.release()
+    finalNormalMat.release()
+    finalWideMat.release()
+    rotatedNormalMat.release()
+    rotatedWideMat.release()
+    resizedNormalMat.release()
+    resizedWideMat.release()
+    disparityMat.release()
+    disparityMat2.release()
+    disparityMatConverted1.release()
+    disparityMatConverted2.release()
+    disparityMapFilteredNormalized.release()
+    disparityMatFiltered.release()
+    disparityMatFilteredConverted.release()
+
+    return rotateBitmap(finalImage, 180f)
 }
 
 fun floatArraytoDoubleArray(fArray: FloatArray) : DoubleArray {
@@ -461,19 +610,15 @@ fun rotationMatrixFromQuaternion(quatFloat: FloatArray) : DoubleArray {
     val c_y: Int = 3
     val s: Int = 4
 
-    //NOTE: 0,2 and 1,2 are swapped going from google values to opencv.
-
     //Row 1
     cameraMatrix[0] = cal[f_x]
     cameraMatrix[1] = cal[s]
     cameraMatrix[2] = cal[c_x]
-//    cameraMatrix[2] = cal[c_y]
 
     //Row 2
     cameraMatrix[3] = 0.0
     cameraMatrix[4] = cal[f_y]
     cameraMatrix[5] = cal[c_y]
-//    cameraMatrix[5] = cal[c_x]
 
     //Row 3
     cameraMatrix[6] = 0.0
