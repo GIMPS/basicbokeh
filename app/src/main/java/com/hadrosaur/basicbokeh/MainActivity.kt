@@ -62,6 +62,17 @@ class MainActivity : AppCompatActivity() {
 
         //TODO: can this logic be simplified?  4 cases: dual cam, dual cam calibration, dual cam but single shot, single cam/single shot
         buttonTakePhoto.setOnClickListener {
+            buttonTakePhoto.visibility = View.GONE
+            progress_take_photo.visibility = View.VISIBLE
+
+            if (PrefHelper.getIntermediate(this)) {
+                imageIntermediate1.setImageResource(android.R.color.transparent);
+                imageIntermediate2.setImageResource(android.R.color.transparent);
+                imageIntermediate3.setImageResource(android.R.color.transparent);
+                imageIntermediate4.setImageResource(android.R.color.transparent);
+                imagePhoto.setImageResource(android.R.color.transparent);
+            }
+
             if (!(camViewModel.getDoDualCamShot().value ?: false)
                 || wideAngleId == normalLensId) {
                 twoLens.reset()
@@ -157,11 +168,10 @@ class MainActivity : AppCompatActivity() {
 
         val intermediateToggleObserver = object : Observer<Boolean> {
             override fun onChanged(t: Boolean?) {
-                switch_intermediate.isChecked = t ?: false
+                switch_intermediate.isChecked = t ?: true
             }
         }
         camViewModel.getShowIntermediate().observe(this, intermediateToggleObserver)
-
 
         /*
         val image = BitmapFactory.decodeResource(getResources(), R.drawable.ambush);

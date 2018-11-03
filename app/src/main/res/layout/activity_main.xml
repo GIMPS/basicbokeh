@@ -22,7 +22,7 @@
         android:layout_marginTop="8dp"
         android:layout_marginEnd="8dp"
         android:layout_marginBottom="8dp"
-        app:layout_constraintBottom_toTopOf="@+id/buttonTakePhoto"
+        app:layout_constraintBottom_toTopOf="@+id/frame_take_photo"
         app:layout_constraintEnd_toEndOf="@+id/guideline_vertical"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -35,7 +35,7 @@
         android:layout_marginTop="8dp"
         android:layout_marginEnd="8dp"
         android:layout_marginBottom="8dp"
-        app:layout_constraintBottom_toTopOf="@+id/buttonTakePhoto"
+        app:layout_constraintBottom_toTopOf="@+id/frame_take_photo"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="@+id/guideline_vertical"
         app:layout_constraintTop_toTopOf="parent" />
@@ -79,17 +79,33 @@
         app:layout_constraintTop_toBottomOf="@+id/texture_foreground" />
 
 
-    <ImageButton
-        android:id="@+id/buttonTakePhoto"
+    <FrameLayout
+        android:id="@+id/frame_take_photo"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="8dp"
         android:layout_marginBottom="8dp"
-        android:contentDescription="@string/label_take_photo"
         android:minHeight="65dp"
         app:layout_constraintBottom_toTopOf="@+id/guideline"
         app:layout_constraintEnd_toEndOf="parent"
-        app:srcCompat="@android:drawable/ic_menu_camera" />
+        >
+
+        <ProgressBar
+            android:id="@+id/progress_take_photo"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_margin="8dp"
+            style="@android:style/Widget.ProgressBar.Small"
+            android:visibility="gone"
+            />
+
+        <ImageButton
+            android:id="@+id/buttonTakePhoto"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="@string/label_take_photo"
+            app:srcCompat="@android:drawable/ic_menu_camera" />
+    </FrameLayout>
 
     <ImageView
         android:id="@+id/imageIntermediate1"

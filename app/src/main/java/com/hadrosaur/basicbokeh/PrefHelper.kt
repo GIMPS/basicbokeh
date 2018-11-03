@@ -40,7 +40,7 @@ class PrefHelper {
 
         fun getIntermediate(activity: MainActivity): Boolean {
             var sharedPref: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(activity)
-            return sharedPref.getBoolean(activity.getString(R.string.settings_intermediate_key), false)
+            return sharedPref.getBoolean(activity.getString(R.string.settings_intermediate_key), true)
         }
 
         fun setIntermediates(activity: MainActivity, showIntermediates: Boolean) {
@@ -60,7 +60,7 @@ class PrefHelper {
 
         fun getSepia(activity: MainActivity): Boolean {
             var sharedPref: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(activity)
-            return sharedPref.getBoolean(activity.getString(R.string.settings_bokeh_sepia_key), true)
+            return sharedPref.getBoolean(activity.getString(R.string.settings_bokeh_sepia_key), false)
         }
 
         fun getBlur(activity: MainActivity): Boolean {
@@ -71,12 +71,12 @@ class PrefHelper {
 
         fun getForegroundCutoff(activity: MainActivity): Double {
             var sharedPref: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(activity)
-            return sharedPref.getString(activity.getString(R.string.settings_bokeh_foreground_cutoff_key), "80").toDouble()
+            return sharedPref.getString(activity.getString(R.string.settings_bokeh_foreground_cutoff_key), "120").toDouble()
         }
 
         fun getWindowSize(activity: MainActivity): Int {
             var sharedPref: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(activity)
-            return sharedPref.getString(activity.getString(R.string.settings_sgbm_windowsize_key), "7").toInt()
+            return sharedPref.getString(activity.getString(R.string.settings_sgbm_windowsize_key), "5").toInt()
         }
 
         fun getNumDisparities(activity: MainActivity): Int {
@@ -101,17 +101,17 @@ class PrefHelper {
 
         fun getSpecklesize(activity: MainActivity): Int {
             var sharedPref: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(activity)
-            return sharedPref.getString(activity.getString(R.string.settings_sgbm_specklesize_key), "200").toInt()
+            return sharedPref.getString(activity.getString(R.string.settings_sgbm_specklesize_key), "225").toInt()
         }
 
         fun getSpecklerange(activity: MainActivity): Int {
             var sharedPref: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(activity)
-            return sharedPref.getString(activity.getString(R.string.settings_sgbm_specklerange_key), "2").toInt()
+            return sharedPref.getString(activity.getString(R.string.settings_sgbm_specklerange_key), "1").toInt()
         }
 
         fun getLambda(activity: MainActivity): Double {
             var sharedPref: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(activity)
-            return sharedPref.getString(activity.getString(R.string.settings_wls_lambda_key), "18000").toDouble()
+            return sharedPref.getString(activity.getString(R.string.settings_wls_lambda_key), "32000").toDouble()
         }
 
         fun getSigma(activity: MainActivity): Double {

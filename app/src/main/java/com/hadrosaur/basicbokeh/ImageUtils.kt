@@ -37,6 +37,7 @@ import android.hardware.camera2.CameraMetadata
 import android.hardware.camera2.CaptureRequest
 import android.net.Uri
 import android.os.Build
+import android.view.View
 import android.widget.Toast
 import androidx.core.view.ViewCompat.LAYER_TYPE_HARDWARE
 import androidx.core.view.ViewCompat.setLayerType
@@ -183,7 +184,7 @@ class ImageSaver internal constructor(private val activity: MainActivity, privat
         if (PrefHelper.getSepia(activity))
             sepiaBackground = sepiaFilter(activity, scaledBackground)
         else
-            sepiaBackground = monoBitmap(scaledBackground)
+            sepiaBackground = monoFilter(scaledBackground)
 
 //        val blurredBackground = gaussianBlur(activity, sepiaBackground, MainActivity.GAUSSIAN_BLUR_RADIUS)
         val blurredBackground = CVBlur(sepiaBackground)
@@ -237,25 +238,24 @@ class ImageSaver internal constructor(private val activity: MainActivity, privat
         //2. Dual lens: generate depth map (but focal lenghts are different...)
         //See what happens if we try to combine things.
 
+        activity.runOnUiThread {
+            activity.progress_take_photo.visibility = View.GONE
+            activity.buttonTakePhoto.visibility = View.VISIBLE
+        }
 
     }
 
 }
 
+//Convenience method that recycles unneeded temp bitmap
+fun rotateAndFlipBitmap(original: Bitmap, degrees: Float): Bitmap {
+    val rotated: Bitmap = rotateBitmap(original, degrees)
+    val flipped: Bitmap = horizontalFlip(rotated)
+    rotated.recycle()
+    return  flipped
+}
+
 fun rotateBitmap(original: Bitmap, degrees: Float): Bitmap {
-    /*        int width = original.getWidth();
-    int height = original.getHeight();
-
-    Matrix matrix = new Matrix();
-    matrix.preRotate(degrees);
-
-    Bitmap rotatedBitmap = Bitmap.createBitmap(original, 0, 0, width, height, matrix, true);
-    Canvas canvas = new Canvas(rotatedBitmap);
-    canvas.drawBitmap(original, 5.0f, 0.0f, null);
-
-    return rotatedBitmap;
-    */
-
     //If no rotation, no-op
     if (0f == degrees)
             return original
@@ -332,7 +332,7 @@ fun drawBox(activity: Activity, cameraParams: CameraParams, bitmap: Bitmap): Bit
     return bitmapBoxed
 }
 
-fun monoBitmap(bitmap: Bitmap) : Bitmap {
+fun monoFilter(bitmap: Bitmap) : Bitmap {
     val mono: Bitmap = Bitmap.createBitmap(bitmap)
     val canvas: Canvas = Canvas(mono)
     val matrix: ColorMatrix = ColorMatrix()

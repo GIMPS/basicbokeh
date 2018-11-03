@@ -61,7 +61,7 @@
 
         <CheckBoxPreference
             android:id="@+id/checkbox_bokeh_sepiah"
-            android:defaultValue="true"
+            android:defaultValue="false"
             android:key="@string/settings_bokeh_sepia_key"
             android:title="@string/settings_bokeh_sepia_title"
             android:summaryOn="@string/settings_bokeh_sepia_summary_on"
@@ -83,7 +83,7 @@
             android:summary="%s"
             android:entries="@array/array_settings_foreground_cutoff"
             android:entryValues="@array/array_settings_foreground_cutoff"
-            android:defaultValue="80"
+            android:defaultValue="120"
             />
     </PreferenceCategory>
 
@@ -109,7 +109,7 @@
             android:summary="%s"
             android:entries="@array/array_settings_windowsize"
             android:entryValues="@array/array_settings_windowsize"
-            android:defaultValue="7"
+            android:defaultValue="5"
             />
 
         <ListPreference
@@ -159,7 +159,7 @@
             android:summary="%s"
             android:entries="@array/array_settings_specklesize"
             android:entryValues="@array/array_settings_specklesize"
-            android:defaultValue="200"
+            android:defaultValue="225"
             />
 
         <ListPreference
@@ -169,7 +169,7 @@
             android:summary="%s"
             android:entries="@array/array_settings_specklerange"
             android:entryValues="@array/array_settings_specklerange"
-            android:defaultValue="2"
+            android:defaultValue="1"
             />
 
         <ListPreference
@@ -179,7 +179,7 @@
             android:summary="%s"
             android:entries="@array/array_settings_lambda"
             android:entryValues="@array/array_settings_lambda"
-            android:defaultValue="18000"
+            android:defaultValue="32000"
             />
 
         <ListPreference
