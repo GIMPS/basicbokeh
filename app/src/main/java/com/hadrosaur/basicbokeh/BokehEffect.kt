@@ -67,8 +67,8 @@ fun DoBokeh(activity: MainActivity, twoLens: TwoLensCoordinator) : Bitmap {
 
     if (PrefHelper.getIntermediate(activity)) {
         activity.runOnUiThread {
-            activity.imageIntermediate1.setImageBitmap(rotateAndFlipBitmap(tempNormalBitmap, -90f))
-            activity.imageIntermediate2.setImageBitmap(rotateAndFlipBitmap(tempWideBitmap, -90f))
+            activity.imageIntermediate1.setImageBitmap(rotateAndFlipBitmap(tempNormalBitmap, getRequiredBitmapRotation(activity)))
+            activity.imageIntermediate2.setImageBitmap(rotateAndFlipBitmap(tempWideBitmap, getRequiredBitmapRotation(activity)))
         }
     }
 
@@ -267,8 +267,8 @@ fun DoBokeh(activity: MainActivity, twoLens: TwoLensCoordinator) : Bitmap {
 
         if (PrefHelper.getIntermediate(activity)) {
             activity.runOnUiThread {
-                activity.imageIntermediate3.setImageBitmap(rotateBitmap(rectifiedNormalBitmap,-90f))
-                activity.imageIntermediate4.setImageBitmap(rotateBitmap(rectifiedWideBitmap, -90f))
+                activity.imageIntermediate3.setImageBitmap(rotateAndFlipBitmap(rectifiedNormalBitmap,getRequiredBitmapRotation(activity)))
+                activity.imageIntermediate4.setImageBitmap(rotateAndFlipBitmap(rectifiedWideBitmap, getRequiredBitmapRotation(activity)))
             }
         }
 
@@ -348,14 +348,15 @@ fun DoBokeh(activity: MainActivity, twoLens: TwoLensCoordinator) : Bitmap {
 
     if (PrefHelper.getIntermediate(activity)) {
         activity.runOnUiThread {
-            activity.imageIntermediate1.setImageBitmap(rotateBitmap(disparityBitmap,180f))
-            activity.imageIntermediate2.setImageBitmap(rotateBitmap(disparityBitmap2, 180f))
+            activity.imageIntermediate1.setImageBitmap(rotateBitmap(disparityBitmap,getRequiredBitmapRotation(activity, true)))
+            activity.imageIntermediate2.setImageBitmap(rotateBitmap(disparityBitmap2, getRequiredBitmapRotation(activity, true)))
         }
     }
     if (PrefHelper.getSaveIntermediate(activity)) {
         WriteFile(activity, rotateBitmap(disparityBitmap,180f), "DisparityMap")
         WriteFile(activity, rotateBitmap(disparityBitmap2,180f), "DisparityMap2")
     }
+
 
     val disparityMatFiltered: Mat = Mat(rotatedNormalMat.rows(), rotatedNormalMat.cols(), CV_8UC1)
     val disparityWLSFilter = createDisparityWLSFilter(stereoBM)
@@ -390,7 +391,7 @@ for (row in 0 until disparityMapFilteredNormalized.rows()) {
 
     val disparityBitmapFiltered: Bitmap = Bitmap.createBitmap(disparityMatFilteredConverted.cols(), disparityMatFilteredConverted.rows(), Bitmap.Config.ARGB_8888)
     Utils.matToBitmap(disparityMatFilteredConverted, disparityBitmapFiltered)
-    val disparityBitmapFilteredFinal = rotateBitmap(disparityBitmapFiltered, 180f)
+    val disparityBitmapFilteredFinal = rotateBitmap(disparityBitmapFiltered, getRequiredBitmapRotation(activity, true))
 
     if (PrefHelper.getSaveIntermediate(activity)) {
         WriteFile(activity, disparityBitmapFilteredFinal, "DisparityMapFilteredNormalized")
@@ -412,7 +413,7 @@ for (row in 0 until disparityMapFilteredNormalized.rows()) {
         val paint = Paint()
         paint.setColor(Color.BLACK)
         blackCanvas.drawRect(0f, 0f, hardNormalizedMaskBitmap.width.toFloat(), hardNormalizedMaskBitmap.height.toFloat(), paint)
-        tempBitmap = rotateBitmap(hardNormalizedMaskBitmap,180f)
+        tempBitmap = rotateBitmap(hardNormalizedMaskBitmap,getRequiredBitmapRotation(activity, true))
         activity.runOnUiThread {
             activity.imageIntermediate4.setImageBitmap(pasteBitmap(activity, black, tempBitmap))
             tempBitmap.recycle()
@@ -428,12 +429,12 @@ for (row in 0 until disparityMapFilteredNormalized.rows()) {
     val nicelyMaskedColour = applyMask(activity, rotatedSmallNormalBitmap, hardNormalizedMaskBitmap)
 
     if (PrefHelper.getSaveIntermediate(activity)) {
-        WriteFile(activity, nicelyMaskedColour, "NicelyMaskedColour")
+        WriteFile(activity, nicelyMaskedColour, "NicelyMaskedColour", 100, true)
     }
 
     if (PrefHelper.getIntermediate(activity)) {
         activity.runOnUiThread {
-            activity.imageIntermediate2.setImageBitmap(rotateBitmap(nicelyMaskedColour,180f))
+            activity.imageIntermediate2.setImageBitmap(rotateBitmap(nicelyMaskedColour,getRequiredBitmapRotation(activity, true)))
         }
     }
 
@@ -456,12 +457,7 @@ for (row in 0 until disparityMapFilteredNormalized.rows()) {
         WriteFile(activity, finalImage, "FinalImage")
     }
 
-    activity.runOnUiThread {
-        activity.progress_take_photo.visibility = View.GONE
-        activity.buttonTakePhoto.visibility = View.VISIBLE
-    }
-
-    return rotateBitmap(finalImage, 180f)
+    return rotateBitmap(finalImage, getRequiredBitmapRotation(activity, true))
 }
 
 fun floatArraytoDoubleArray(fArray: FloatArray) : DoubleArray {

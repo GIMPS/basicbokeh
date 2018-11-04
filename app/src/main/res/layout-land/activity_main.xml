@@ -22,8 +22,8 @@
         android:layout_marginTop="8dp"
         android:layout_marginEnd="8dp"
         android:layout_marginBottom="8dp"
-        app:layout_constraintBottom_toTopOf="@+id/frame_take_photo"
-        app:layout_constraintEnd_toEndOf="@+id/guideline_vertical"
+        app:layout_constraintBottom_toTopOf="@+id/guideline"
+        app:layout_constraintEnd_toStartOf="@+id/texture_background"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -35,10 +35,40 @@
         android:layout_marginTop="8dp"
         android:layout_marginEnd="8dp"
         android:layout_marginBottom="8dp"
-        app:layout_constraintBottom_toTopOf="@+id/frame_take_photo"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="@+id/guideline_vertical"
+        app:layout_constraintBottom_toTopOf="@+id/guideline"
+        app:layout_constraintEnd_toStartOf="@id/guideline_vertical"
+        app:layout_constraintStart_toEndOf="@+id/texture_foreground"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <FrameLayout
+        android:id="@+id/frame_take_photo"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginBottom="8dp"
+        android:minHeight="65dp"
+        app:layout_constraintBottom_toTopOf="@+id/switch_mode"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/guideline_vertical"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <ProgressBar
+            android:id="@+id/progress_take_photo"
+            style="@android:style/Widget.ProgressBar.Small"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_margin="8dp"
+            android:visibility="gone" />
+
+        <ImageButton
+            android:id="@+id/buttonTakePhoto"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="@string/label_take_photo"
+            app:srcCompat="@android:drawable/ic_menu_camera" />
+    </FrameLayout>
 
     <Switch
         android:id="@+id/switch_mode"
@@ -50,9 +80,10 @@
         android:showText="false"
         android:switchPadding="4dp"
         android:text="@string/label_switch_mode"
-        app:layout_constraintBottom_toTopOf="@+id/guideline"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/texture_foreground" />
+        app:layout_constraintStart_toEndOf="@+id/guideline_vertical"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/switch_intermediate"
+        app:layout_constraintTop_toBottomOf="@+id/frame_take_photo" />
 
     <Switch
         android:id="@+id/switch_intermediate"
@@ -64,9 +95,10 @@
         android:showText="false"
         android:switchPadding="4dp"
         android:text="@string/label_switch_intermediate"
+        app:layout_constraintStart_toEndOf="@+id/guideline_vertical"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toTopOf="@+id/guideline"
-        app:layout_constraintStart_toEndOf="@id/switch_mode"
-        app:layout_constraintTop_toBottomOf="@+id/texture_foreground" />
+        app:layout_constraintTop_toBottomOf="@+id/switch_mode" />
 
     <TextView
         android:id="@+id/text_calibration_counter"
@@ -79,34 +111,6 @@
         app:layout_constraintTop_toBottomOf="@+id/texture_foreground" />
 
 
-    <FrameLayout
-        android:id="@+id/frame_take_photo"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginEnd="8dp"
-        android:layout_marginBottom="8dp"
-        android:minHeight="65dp"
-        app:layout_constraintBottom_toTopOf="@+id/guideline"
-        app:layout_constraintEnd_toEndOf="parent"
-        >
-
-        <ProgressBar
-            android:id="@+id/progress_take_photo"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_margin="8dp"
-            style="@android:style/Widget.ProgressBar.Small"
-            android:visibility="gone"
-            />
-
-        <ImageButton
-            android:id="@+id/buttonTakePhoto"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:contentDescription="@string/label_take_photo"
-            app:srcCompat="@android:drawable/ic_menu_camera" />
-    </FrameLayout>
-
     <ImageView
         android:id="@+id/imageIntermediate1"
         android:layout_width="0dp"
@@ -117,10 +121,11 @@
         android:layout_marginBottom="8dp"
         android:adjustViewBounds="true"
         android:contentDescription="Intermediate Image 1"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/imageIntermediate2"
-        app:layout_constraintTop_toBottomOf="@id/guideline"
         app:layout_constraintBottom_toTopOf="@id/imageIntermediate3"
+        app:layout_constraintEnd_toStartOf="@id/imageIntermediate2"
+        app:layout_constraintHorizontal_chainStyle="spread_inside"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/guideline"
         app:srcCompat="@android:drawable/btn_star_big_off" />
 
     <ImageView
@@ -194,6 +199,6 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         app:layout_constraintGuide_begin="20dp"
-        app:layout_constraintGuide_percent="0.5" />
+        app:layout_constraintGuide_percent="0.8" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

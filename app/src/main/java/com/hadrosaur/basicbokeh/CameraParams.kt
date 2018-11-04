@@ -36,7 +36,7 @@ class CameraParams {
     internal var shutter: ImageView? = null
     internal var capturedPhoto: ImageView? = null
     internal var imageReader: ImageReader? = null
-    internal var previewTextureView: TextureView? = null
+    internal var previewTextureView: AutoFitTextureView? = null
 
     internal var physicalCameras: Set<String> = HashSet<String>()
     internal var focalLengths: FloatArray = FloatArray(0)

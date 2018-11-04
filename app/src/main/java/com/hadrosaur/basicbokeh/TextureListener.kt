@@ -1,13 +1,17 @@
 package com.hadrosaur.basicbokeh
 
+import android.graphics.Matrix
+import android.graphics.RectF
 import android.graphics.SurfaceTexture
 import android.hardware.camera2.CameraCharacteristics
+import android.view.Surface
 import android.view.SurfaceHolder
 import android.view.TextureView
+import com.hadrosaur.basicbokeh.MainActivity.Companion.Logd
 import java.lang.Exception
 
 
-class TextureListener(internal var params: CameraParams, internal val activity: MainActivity): TextureView.SurfaceTextureListener {
+class TextureListener(internal var params: CameraParams, internal val activity: MainActivity, internal val textureView: AutoFitTextureView): TextureView.SurfaceTextureListener {
     override fun onSurfaceTextureUpdated(p0: SurfaceTexture?) {
 //        Logd( "In surfaceTextureUpdated. Id: " + params.id)
 //        openCamera(params, activity)
@@ -32,16 +36,7 @@ class TextureListener(internal var params: CameraParams, internal val activity: 
 
     override fun onSurfaceTextureSizeChanged(texture: SurfaceTexture, width: Int, height: Int) {
         MainActivity.Logd("In surfaceTextureSizeChanged. Id: " + params.id)
-        val info = params.characteristics
-                ?.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
-
-        //       val largestSize = Collections.max(Arrays.asList(*info?.getOutputSizes(ImageFormat.JPEG)),
-        //               CompareSizesByArea())
-//        val optimalSize = chooseBigEnoughSize(
-//                info?.getOutputSizes(SurfaceHolder::class.java), width, height)
-//        params.previewTextureView.setFixedSize(optimalSize.width,
-//                optimalSize.height)
-//        configureTransform(width, height)
+        rotatePreviewTexture(activity, params, textureView)
     }
 
     override fun onSurfaceTextureDestroyed(texture: SurfaceTexture) : Boolean {

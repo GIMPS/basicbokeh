@@ -48,8 +48,6 @@ class MainActivity : AppCompatActivity() {
         cameraParams = camViewModel.getCameraParams()
         sharedPrefs =  PreferenceManager.getDefaultSharedPreferences(this)
 
-        toggleRotationLock(true)
-
         //Load OpenCV for Bokeh effects
         if (!OpenCVLoader.initDebug()) {
             Logd("OpenCV failed to load!")
@@ -62,8 +60,7 @@ class MainActivity : AppCompatActivity() {
 
         //TODO: can this logic be simplified?  4 cases: dual cam, dual cam calibration, dual cam but single shot, single cam/single shot
         buttonTakePhoto.setOnClickListener {
-            buttonTakePhoto.visibility = View.GONE
-            progress_take_photo.visibility = View.VISIBLE
+            prepareUIForCapture()
 
             if (PrefHelper.getIntermediate(this)) {
                 imageIntermediate1.setImageResource(android.R.color.transparent);
@@ -329,6 +326,24 @@ class MainActivity : AppCompatActivity() {
             requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_USER
         }
     }
+
+    //Prep UI for capture
+    fun prepareUIForCapture() {
+        buttonTakePhoto.visibility = View.GONE
+        progress_take_photo.visibility = View.VISIBLE
+        toggleRotationLock(true)
+
+        //TODO: clear current bitmaps to free some memory before call
+    }
+
+    //Clean-up UI after capture is complete
+    fun captureFinished() {
+        buttonTakePhoto.visibility = View.VISIBLE
+        progress_take_photo.visibility = View.GONE
+        toggleRotationLock(false)
+    }
+
+
 
     /**
      * A native method that is implemented by the 'native-lib' native library,

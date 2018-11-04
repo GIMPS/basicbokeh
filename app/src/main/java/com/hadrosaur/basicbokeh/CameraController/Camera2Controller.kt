@@ -2,6 +2,8 @@ package com.hadrosaur.basicbokeh
 
 import android.app.Activity
 import android.content.Context
+import android.graphics.Matrix
+import android.graphics.RectF
 import android.graphics.SurfaceTexture
 import android.hardware.camera2.*
 import android.view.Surface
@@ -29,6 +31,7 @@ import com.hadrosaur.basicbokeh.MainActivity.Companion.dualCamLogicalId
 import com.hadrosaur.basicbokeh.MainActivity.Companion.normalLensId
 import com.hadrosaur.basicbokeh.MainActivity.Companion.twoLens
 import com.hadrosaur.basicbokeh.MainActivity.Companion.wideAngleId
+import kotlinx.android.synthetic.main.activity_main.*
 
 fun createCameraPreviewSession(activity: MainActivity, camera: CameraDevice, params: CameraParams) {
     Logd("In createCameraPreviewSession.")
@@ -128,9 +131,11 @@ fun camera2OpenCamera(activity: MainActivity, params: CameraParams?) {
 
     val manager = activity.getSystemService(Context.CAMERA_SERVICE) as CameraManager
     try {
-        //We might be running a new test so make sure our callbacks match the test config
         params.cameraCallback = CameraStateCallback(params, activity)
         params.captureCallback = FocusCaptureSessionCallback(activity, params)
+
+        rotatePreviewTexture(activity, params, activity.texture_foreground)
+        rotatePreviewTexture(activity, params, activity.texture_background)
 
         //We have a dual lens situation, only open logical cam
         if (!MainActivity.dualCamLogicalId.equals("")
@@ -416,6 +421,31 @@ fun unlockFocus(activity: MainActivity, params: CameraParams) {
     }
 
 }
+
+fun rotatePreviewTexture(activity: MainActivity, params: CameraParams, textureView: AutoFitTextureView) {
+    Logd("I AM ROTATING!!!")
+    val rotation: Int = activity.windowManager.defaultDisplay.rotation
+
+    val matrix: Matrix = Matrix()
+    val viewRect: RectF = RectF(0f, 0f, textureView.width.toFloat(), textureView.height.toFloat())
+    val previewRect: RectF = RectF(0f, 0f, params.minSize.width.toFloat(), params.minSize.height.toFloat())
+    val centerX: Float = viewRect.centerX()
+    val centerY: Float = viewRect.centerY()
+
+    if (Surface.ROTATION_90 == rotation || Surface.ROTATION_270 == rotation) {
+        previewRect.offset(centerX - previewRect.centerX(), centerY - previewRect.centerY());
+        matrix.setRectToRect(viewRect, previewRect, Matrix.ScaleToFit.FILL);
+        val scale: Float = Math.max(textureView.width.toFloat() / params.minSize.width.toFloat() ,
+                textureView.height.toFloat() / params.minSize.height.toFloat());
+        matrix.postScale(scale, scale, centerX, centerY);
+        matrix.postRotate(90f * (rotation - 2), centerX, centerY);
+    } else if (Surface.ROTATION_180 == rotation) {
+        matrix.postRotate(180f, centerX, centerY);
+    }
+    textureView.setTransform(matrix);
+
+}
+
 
 
 internal fun shutterControl(activity: Activity, shutter: View, openShutter: Boolean) {

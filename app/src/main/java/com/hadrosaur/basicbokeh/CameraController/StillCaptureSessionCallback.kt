@@ -130,6 +130,10 @@ class StillCaptureSessionCallback(val activity: MainActivity, val params: Camera
 
                 twoLens.normalImage?.close()
                 twoLens.wideImage?.close()
+
+                activity.runOnUiThread {
+                    activity.captureFinished()
+                }
             }
         } else {
             singleLens.shotDone = true

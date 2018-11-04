@@ -21,8 +21,7 @@ public class DisparityWLSFilter extends DisparityFilter {
     // internal usage only
     public static DisparityWLSFilter __fromPtr__(long addr) { return new DisparityWLSFilter(addr); }
 
-    public DisparityWLSFilter createDisparityWLSFilter(StereoMatcher matcher_left)
-    {
+    public DisparityWLSFilter createDisparityWLSFilter(StereoMatcher matcher_left) {
         DisparityWLSFilter filter = createDisparityWLSFilter_0(matcher_left);
 
         return filter;

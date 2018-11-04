@@ -3,6 +3,8 @@ package com.hadrosaur.basicbokeh
 import android.app.Activity
 import android.content.Context
 import android.graphics.ImageFormat
+import android.graphics.Matrix
+import android.graphics.RectF
 import android.hardware.camera2.*
 import android.media.ImageReader
 import android.os.Build
@@ -214,13 +216,13 @@ fun initializeCameras(activity: MainActivity) {
 
         MainActivity.cameraParams.get(MainActivity.wideAngleId)?.previewTextureView  = activity.texture_background
         MainActivity.cameraParams.get(MainActivity.wideAngleId)?.previewTextureView?.surfaceTextureListener =
-                TextureListener(MainActivity.cameraParams.get(MainActivity.wideAngleId)!!, activity)
+                TextureListener(MainActivity.cameraParams.get(MainActivity.wideAngleId)!!, activity, activity.texture_background)
 
         // If multi-camera, ready both preview textures
         if (MainActivity.wideAngleId != MainActivity.normalLensId) {
             MainActivity.cameraParams.get(MainActivity.normalLensId)?.previewTextureView  = activity.texture_foreground
             MainActivity.cameraParams.get(MainActivity.normalLensId)?.previewTextureView?.surfaceTextureListener =
-                    TextureListener(MainActivity.cameraParams.get(MainActivity.normalLensId)!!, activity)
+                    TextureListener(MainActivity.cameraParams.get(MainActivity.normalLensId)!!, activity, activity.texture_foreground)
         }
 
 
@@ -270,6 +272,35 @@ fun getOrientation(params: CameraParams, rotation: Int): Int {
     return (ORIENTATIONS.get(rotation) + sensorRotation + 270) % 360
 }
 
+fun getRequiredBitmapRotation(activity: MainActivity, depthMapCorrect: Boolean = false): Float {
+    val rotation: Int = activity.windowManager.defaultDisplay.rotation
+
+    var neededRotation = 0
+
+    //Depth maps need a 90 CW turn so we undo that if needed
+    if (depthMapCorrect) {
+        neededRotation = when (rotation) {
+            Surface.ROTATION_0 -> -180
+            Surface.ROTATION_90 -> -270
+            Surface.ROTATION_180 -> 0
+            Surface.ROTATION_270 -> -90
+            else -> 0
+        }
+    } else {
+        neededRotation = when (rotation) {
+            Surface.ROTATION_0 -> -90
+            Surface.ROTATION_90 -> 0
+            Surface.ROTATION_180 -> 90
+            Surface.ROTATION_270 -> 180
+            else -> 0
+        }
+    }
+
+    Logd("So exciting, need rotation: " + neededRotation)
+
+    return neededRotation.toFloat()
+}
+
 fun setupImageReader(activity: MainActivity, params: CameraParams) {
     with (params) {
         params.imageReader?.close()
@@ -281,6 +312,7 @@ fun setupImageReader(activity: MainActivity, params: CameraParams) {
         //For some cameras, using the max preview size can conflict with big image captures
         //We just uses the smallest preview size to avoid this situation
         params.previewTextureView?.surfaceTexture?.setDefaultBufferSize(minSize.width, minSize.height)
+        params.previewTextureView?.setAspectRatio(minSize.width, minSize.height)
 //        params.previewTextureView?.surfaceTexture?.setDefaultBufferSize(640, 480)
     }
 

@@ -169,7 +169,7 @@ class ImageSaver internal constructor(private val activity: MainActivity, privat
         val featheredForeground = featherBitmap(activity, scaledForeground, 0.20f)
 
         if (PrefHelper.getSaveIntermediate(activity)) {
-            WriteFile(activity, featheredForeground,"FeatheredHead")
+            WriteFile(activity, featheredForeground,"FeatheredHead", 100, true)
         }
 
         if (PrefHelper.getIntermediate(activity)) {
@@ -214,7 +214,7 @@ class ImageSaver internal constructor(private val activity: MainActivity, privat
 
             //Save to disk
             if (PrefHelper.getSaveIntermediate(activity)) {
-                WriteFile(activity, finalBitmap,"FloatingHeadShot")
+                WriteFile(activity, finalBitmap,"FloatingHeadShot", 100, true)
             }
 
         } else {
@@ -239,10 +239,8 @@ class ImageSaver internal constructor(private val activity: MainActivity, privat
         //See what happens if we try to combine things.
 
         activity.runOnUiThread {
-            activity.progress_take_photo.visibility = View.GONE
-            activity.buttonTakePhoto.visibility = View.VISIBLE
+            activity.captureFinished()
         }
-
     }
 
 }
@@ -251,7 +249,11 @@ class ImageSaver internal constructor(private val activity: MainActivity, privat
 fun rotateAndFlipBitmap(original: Bitmap, degrees: Float): Bitmap {
     val rotated: Bitmap = rotateBitmap(original, degrees)
     val flipped: Bitmap = horizontalFlip(rotated)
-    rotated.recycle()
+
+    //We don't want to accidentally recycle the original bitmap
+    if (original != rotated)
+        rotated.recycle()
+
     return  flipped
 }
 
@@ -481,12 +483,17 @@ class OpenCVLoaderCallback(val context: Context) : BaseLoaderCallback(context) {
     }
 }
 
-fun WriteFile(activity: MainActivity, bitmap: Bitmap, name: String) {
+fun WriteFile(activity: MainActivity, bitmap: Bitmap, name: String, quality: Int = 100, writePNG: Boolean = false) {
     val PHOTOS_DIR: String = "BasicBokeh"
 
-    val jpgFile = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM),
+    var jpgFile = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM),
             File.separatorChar + PHOTOS_DIR + File.separatorChar +
                     name + ".jpg")
+
+    if (writePNG)
+        jpgFile = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM),
+                File.separatorChar + PHOTOS_DIR + File.separatorChar +
+                        name + ".png")
 
     val photosDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM), PHOTOS_DIR)
 
@@ -503,7 +510,12 @@ fun WriteFile(activity: MainActivity, bitmap: Bitmap, name: String) {
     var output: FileOutputStream? = null
     try {
         output = FileOutputStream(jpgFile)
-        bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)
+
+        if (writePNG)
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)
+        else
+            bitmap.compress(Bitmap.CompressFormat.JPEG, quality, output)
+
     } catch (e: IOException) {
         e.printStackTrace()
     } finally {
@@ -625,7 +637,7 @@ fun applyMask(activity: MainActivity, image: Bitmap, mask: Bitmap) : Bitmap {
     canvas.drawBitmap(image, 0.0f, 0.0f, Paint())
     canvas.drawBitmap(mask, 0.0f, 0.0f, maskPaint)
 
-    WriteFile(activity, maskedImage, "MaskedFull")
+    WriteFile(activity, maskedImage, "MaskedFull", 100, true)
 
     return maskedImage
 }
