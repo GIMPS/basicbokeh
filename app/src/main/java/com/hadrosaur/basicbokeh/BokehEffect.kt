@@ -267,8 +267,8 @@ fun DoBokeh(activity: MainActivity, twoLens: TwoLensCoordinator) : Bitmap {
 
         if (PrefHelper.getIntermediate(activity)) {
             activity.runOnUiThread {
-                activity.imageIntermediate3.setImageBitmap(rotateAndFlipBitmap(rectifiedNormalBitmap,getRequiredBitmapRotation(activity)))
-                activity.imageIntermediate4.setImageBitmap(rotateAndFlipBitmap(rectifiedWideBitmap, getRequiredBitmapRotation(activity)))
+                activity.imageIntermediate3.setImageBitmap(rotateBitmap(rectifiedNormalBitmap,getRequiredBitmapRotation(activity)))
+                activity.imageIntermediate4.setImageBitmap(rotateBitmap(rectifiedWideBitmap, getRequiredBitmapRotation(activity)))
             }
         }
 
