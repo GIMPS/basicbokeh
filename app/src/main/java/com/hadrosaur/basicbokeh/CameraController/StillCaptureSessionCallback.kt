@@ -99,6 +99,22 @@ class StillCaptureSessionCallback(val activity: MainActivity, val params: Camera
                 params.faceBounds.bottom += (params.maxSize.height / 8)
                 params.faceBounds.right += (params.maxSize.width / 8)
                 params.faceBounds.left -= (params.maxSize.width / 8)
+
+                //Make sure we don't overshoot
+                if (params.faceBounds.left < 0) params.faceBounds.left = 0
+                if (params.faceBounds.top < 0) params.faceBounds.top = 0
+                if (params.faceBounds.right > params.maxSize.width)
+                    params.faceBounds.right = params.maxSize.width
+                if (params.faceBounds.bottom > params.maxSize.height)
+                    params.faceBounds.bottom = params.maxSize.height
+
+                MainActivity.Logd("Adjusted Face Bounds: bottom: " + params.faceBounds.bottom + " left: " + params.faceBounds.left + " right: " + params.faceBounds.right + " top: " + params.faceBounds.top)
+
+                if (PrefHelper.getGrabCut(activity)) {
+                    //Expand facebox to include an extra "head" to left and right, and all the way to bottom of photo
+                    params.grabCutBounds = faceBoundsToGrabCutBounds(activity, params.faceBounds, params.maxSize.width, params.maxSize.height)
+                    MainActivity.Logd("Grabcut Bounds: bottom: " + params.grabCutBounds.bottom + " left: " + params.grabCutBounds.left + " right: " + params.grabCutBounds.right + " top: " + params.grabCutBounds.top)
+                }
             }
         }
 
@@ -145,7 +161,6 @@ class StillCaptureSessionCallback(val activity: MainActivity, val params: Camera
                     params.backgroundHandler?.post(ImageSaver(activity, params, singleLens.image, params.capturedPhoto, params.isFront, params))
             }
         }
-
 
         MainActivity.Logd("captureStillPicture onCaptureCompleted. CaptureEnd.")
         createCameraPreviewSession(activity, params.device!!, params)

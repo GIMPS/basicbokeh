@@ -110,10 +110,16 @@ fun initializeCameras(activity: MainActivity) {
 
                 //Facical detection
                 val faceDetectModes: IntArray = cameraChars.get(CameraCharacteristics.STATISTICS_INFO_AVAILABLE_FACE_DETECT_MODES)
+                if (faceDetectModes.isNotEmpty()) {
+                    bestFaceDetectionMode = faceDetectModes.last()
+                }
+
+                /*
                 for (mode in faceDetectModes) {
                     Logd("This cam has face detect mode: " + mode)
                     bestFaceDetectionMode = mode //assume array is sorted ascending
                 }
+                */
 
                 if (hasDepth)
                     Logd("This camera has depth output!")

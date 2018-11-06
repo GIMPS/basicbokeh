@@ -1,6 +1,7 @@
 package com.hadrosaur.basicbokeh
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.ActivityInfo
@@ -21,6 +22,7 @@ import android.util.Log
 import android.util.Size
 import android.util.SparseIntArray
 import android.view.*
+import android.view.textclassifier.TextClassificationManager
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -190,6 +192,7 @@ class MainActivity : AppCompatActivity() {
         WriteFile(this, finalImage, "FinalImage")
         imagePhoto.setImageBitmap(finalImage)
 */
+
     }//onCreate
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {

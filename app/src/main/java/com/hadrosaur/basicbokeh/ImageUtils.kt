@@ -1,5 +1,6 @@
 package com.hadrosaur.basicbokeh
 
+import android.R.attr.*
 import android.app.Activity
 import android.content.res.Resources
 import android.graphics.*
@@ -21,11 +22,7 @@ import androidx.renderscript.Element
 import androidx.renderscript.RenderScript
 import androidx.renderscript.ScriptIntrinsicBlur
 import com.hadrosaur.basicbokeh.MainActivity.Companion.Logd
-import android.R.attr.top
-import android.R.attr.left
 import android.graphics.Bitmap
-import android.R.attr.bottom
-import android.R.attr.right
 import android.content.Context
 import android.content.Intent
 import com.hadrosaur.basicbokeh.MainActivity.Companion.BLUR_SCALE_FACTOR
@@ -48,11 +45,11 @@ import org.opencv.android.BaseLoaderCallback
 import org.opencv.android.LoaderCallbackInterface
 import org.opencv.android.OpenCVLoader
 import org.opencv.android.Utils
+import org.opencv.core.Core
 import org.opencv.core.Core.merge
 import org.opencv.core.Core.split
 import org.opencv.core.CvType
-import org.opencv.core.CvType.CV_8UC1
-import org.opencv.core.CvType.CV_8UC4
+import org.opencv.core.CvType.*
 import org.opencv.core.Mat
 import org.opencv.core.Size
 import org.opencv.imgproc.Imgproc
@@ -133,6 +130,9 @@ class ImageSaver internal constructor(private val activity: MainActivity, privat
         val wasFaceDetected: Boolean =
             CameraMetadata.STATISTICS_FACE_DETECT_MODE_OFF != cameraParams.bestFaceDetectionMode
                 && cameraParams.hasFace
+                && (cameraParams.faceBounds.left + cameraParams.faceBounds.right +
+                    cameraParams.faceBounds.bottom + cameraParams.faceBounds.top != 0)
+
 
         //2 ideas
         //1. Single lens: cut out head, paste it on blurred/sepia'd background
@@ -149,10 +149,26 @@ class ImageSaver internal constructor(private val activity: MainActivity, privat
             }
         }
 
-        //TODO: Insert GrabCut logic here.
-
         //Foreground
-        val croppedForeground = cropBitmap(activity, foregroundImageBitmap, cameraParams.faceBounds)
+        var croppedForeground = Bitmap.createBitmap(10, 10, Bitmap.Config.ARGB_8888)
+        if (PrefHelper.getGrabCut(activity)) {
+
+            MainActivity.Logd("Image callback Facebounds Bounds: bottom: " + cameraParams.faceBounds.bottom + " left: " + cameraParams.faceBounds.left + " right: " + cameraParams.faceBounds.right + " top: " + cameraParams.faceBounds.top)
+            MainActivity.Logd("Image callback Grabcut Bounds: bottom: " + cameraParams.grabCutBounds.bottom + " left: " + cameraParams.grabCutBounds.left + " right: " + cameraParams.grabCutBounds.right + " top: " + cameraParams.grabCutBounds.top)
+
+            croppedForeground = doGrabCut(activity, foregroundImageBitmap, cameraParams.grabCutBounds)
+
+            //Set the image view to be the final
+            setCapturedPhoto(activity, imageView, rotateAndFlipBitmap(croppedForeground, -90f))
+
+            activity.runOnUiThread {
+                activity.captureFinished()
+            }
+
+            return
+        } else {
+            croppedForeground = cropBitmap(activity, foregroundImageBitmap, cameraParams.faceBounds)
+        }
 
         if (PrefHelper.getSaveIntermediate(activity)) {
             WriteFile(activity, croppedForeground,"CroppedHead")
@@ -667,7 +683,6 @@ fun hardNormalizeDepthMap(activity: Activity, inputBitmap: Bitmap, cutoff: Doubl
 }
 
 //Normalize depthmap to be mostly white or black, with steep curve at cutoff between 0 - 255
-//Return Mat with background transparent
 fun hardNormalizeDepthMap(inputMat: Mat, cutoff: Double = 80.0, blurSize: Double = 100.0) : Mat {
     val normalizedMat = Mat()
 
@@ -710,4 +725,214 @@ fun CVBlur(bitmap: Bitmap, radius: Int = 71) : Bitmap {
     Utils.matToBitmap(outMat, outputBitmap)
 
     return outputBitmap
+}
+
+fun doGrabCut(activity: MainActivity, bitmap: Bitmap, rect: Rect) : Bitmap {
+
+    val imageMat: Mat = Mat()
+    val foregroundMat: Mat = Mat()
+    val backgroundMat: Mat = Mat()
+    val fgModel: Mat = Mat()
+    val bgModel: Mat = Mat()
+    val cutMask: Mat = Mat()
+
+    val scaleFactor: Float = 0.25f
+
+    val scaledBitmap = scaleBitmap(activity, bitmap, scaleFactor)
+
+    val cvRect: org.opencv.core.Rect = org.opencv.core.Rect((rect.left * scaleFactor).toInt(), (rect.top * scaleFactor).toInt(),
+            (rect.width() * scaleFactor).toInt(), (rect.height() * scaleFactor).toInt())
+    Utils.bitmapToMat(scaledBitmap, imageMat)
+    val imageMat3: Mat = Mat()
+    Imgproc.cvtColor(imageMat, imageMat3, COLOR_BGRA2BGR)
+
+    Logd("About to do Grabcut. Images size is: " + imageMat3.cols() + "x" + imageMat3.rows() + ". Bounds are: " + cvRect.x + ", " + cvRect.y + ", " + (cvRect.width + cvRect.x) + ", " + (cvRect.height + cvRect.y))
+
+    Imgproc.grabCut(imageMat3, cutMask, cvRect, bgModel, fgModel, 2, Imgproc.GC_INIT_WITH_RECT)
+
+    val normalizedCutMask: Mat = Mat()
+    Core.normalize(cutMask, normalizedCutMask, 0.0, 255.0, Core.NORM_MINMAX, CvType.CV_8U)
+
+    val normalizedCutMaskConverted: Mat = Mat()
+    normalizedCutMask.convertTo(normalizedCutMaskConverted, CV_8UC1, 1.0);
+
+    val normalizedBitmap: Bitmap = Bitmap.createBitmap(normalizedCutMaskConverted.cols(), normalizedCutMaskConverted.rows(), Bitmap.Config.ARGB_8888)
+    Utils.matToBitmap(normalizedCutMaskConverted, normalizedBitmap)
+
+    val foregroundMask = hardNormalizeDepthMap(activity, normalizedBitmap, 254.0)
+
+    val scaledMask = scaleBitmap(activity, foregroundMask, 1f / scaleFactor)
+
+    if (PrefHelper.getIntermediate(activity)) {
+        //Lay it on a black background
+        val black = Bitmap.createBitmap(scaledMask.height, scaledMask.width, Bitmap.Config.ARGB_8888)
+        val blackCanvas = Canvas(black)
+        val paint = Paint()
+        paint.setColor(Color.BLACK)
+        blackCanvas.drawRect(0f, 0f, scaledMask.height.toFloat(), scaledMask.width.toFloat(), paint)
+        val tempBitmap = rotateAndFlipBitmap(scaledMask,getRequiredBitmapRotation(activity))
+        activity.runOnUiThread {
+            activity.imageIntermediate2.setImageBitmap(pasteBitmap(activity, black, tempBitmap))
+        }
+    }
+
+    val nicelyMasked = applyMask(activity, bitmap, scaledMask)
+
+    if (PrefHelper.getIntermediate(activity)) {
+        activity.runOnUiThread {
+            activity.imageIntermediate3.setImageBitmap(rotateAndFlipBitmap(nicelyMasked,getRequiredBitmapRotation(activity)))
+        }
+    }
+
+    var backgroundBitmap = bitmap
+
+    if (PrefHelper.getSepia(activity))
+        backgroundBitmap = sepiaFilter(activity, bitmap)
+    else
+        backgroundBitmap = monoFilter(bitmap)
+
+    val blurredBackgroundBitmap = CVBlur(backgroundBitmap)
+
+    if (PrefHelper.getIntermediate(activity)) {
+        activity.runOnUiThread {
+            activity.imageIntermediate4.setImageBitmap(rotateAndFlipBitmap(blurredBackgroundBitmap,getRequiredBitmapRotation(activity)))
+        }
+    }
+
+
+    val finalImage = pasteBitmap(activity, blurredBackgroundBitmap, nicelyMasked, android.graphics.Rect(0, 0, blurredBackgroundBitmap.width, blurredBackgroundBitmap.height))
+
+
+    return finalImage
+
+
+    /*
+Mat background = new Mat(img.size(), CvType.CV_8UC3,
+                    new Scalar(255, 255, 255));
+            Mat mask;
+            Mat source = new Mat(1, 1, CvType.CV_8U, new Scalar(Imgproc.GC_PR_FGD));
+            Mat dst = new Mat();
+            Rect rect = new Rect(tl, br);
+
+            Core.compare(firstMask, source, firstMask, Core.CMP_EQ);
+
+            Mat foreground = new Mat(img.size(), CvType.CV_8UC3,
+                    new Scalar(255, 255, 255));
+            img.copyTo(foreground, firstMask);
+
+            Scalar color = new Scalar(255, 0, 0, 255);
+            Core.rectangle(img, tl, br, color);
+
+            Mat tmp = new Mat();
+            Imgproc.resize(background, tmp, img.size());
+            background = tmp;
+            mask = new Mat(foreground.size(), CvType.CV_8UC1,
+                    new Scalar(255, 255, 255));
+
+            Imgproc.cvtColor(foreground, mask, Imgproc.COLOR_BGR2GRAY);
+            Imgproc.threshold(mask, mask, 254, 255, Imgproc.THRESH_BINARY_INV);
+            System.out.println();
+            Mat vals = new Mat(1, 1, CvType.CV_8UC3, new Scalar(0.0));
+            background.copyTo(dst);
+
+            background.setTo(vals, mask);
+
+            Core.add(background, foreground, dst, mask);
+
+            firstMask.release();
+            source.release();
+            bgModel.release();
+            fgModel.release();
+            vals.release();
+        */
+
+
+}
+
+fun faceBoundsToGrabCutBounds(activity: MainActivity, faceRect: Rect, imageWidth: Int, imageHeight: Int) : Rect {
+    val faceWidth = (faceRect.right - faceRect.left) / 2
+    val faceRectF = RectF(faceRect)
+
+    val grabCutRect = Rect(faceRect)
+
+//    grabCutRect.top = faceRect.top - faceWidth
+//    grabCutRect.bottom = faceRect.bottom + faceWidth
+//    grabCutRect.left = faceRect.left
+    grabCutRect.right = faceRect.right
+    grabCutRect.left = 0
+    grabCutRect.top = faceRect.top - faceWidth
+    grabCutRect.bottom = faceRect.bottom + faceWidth
+
+
+    //Make sure we don't overshoot
+    if (grabCutRect.left < 0) grabCutRect.left = 0
+    if (grabCutRect.top < 0) grabCutRect.top = 0
+    if (grabCutRect.right > imageWidth)
+        grabCutRect.right = imageWidth
+    if (grabCutRect.bottom > imageHeight)
+        grabCutRect.bottom = imageHeight
+
+    return grabCutRect
+
+    //Portrati == -90 rotation
+    //Portrait "top" = right side for face bounds
+    //So left = 0 means go to "ground" of portrait
+
+/*
+    var grabCutRectF = RectF()
+
+    //Rotate rect based on orientation
+    val rotation = getRequiredBitmapRotation(activity)
+//    val matrix: Matrix = Matrix();
+//    matrix.setRotate(rotation, faceRectF.centerX(), faceRectF.centerY());
+//    matrix.mapRect(faceRectF)
+
+    Logd("In faceBoundsToGrabCutBounds. Rotation: " + rotation)
+
+    val grabCutRect: Rect = Rect()
+
+    if (rotation == 90f || rotation == -90f || rotation == 270f || rotation == -270f) {
+        grabCutRectF.top = faceRectF.top - faceWidth
+        grabCutRectF.bottom = faceRectF.bottom + faceWidth
+        grabCutRectF.left = faceRectF.left
+        grabCutRectF.right = imageWidth.toFloat()
+
+/*        //Rotate Rect back to correct orientation
+        grabCutRectF = RectF(grabCutRect)
+        val grabMatrix: Matrix = Matrix();
+        grabMatrix.setRotate(rotation, grabCutRectF.centerX(), grabCutRectF.centerY());
+        grabMatrix.mapRect(grabCutRectF)
+*/
+        //Make sure we don't overshoot
+        if (grabCutRectF.left < 0) grabCutRectF.left = 0f
+        if (grabCutRectF.top < 0) grabCutRectF.top = 0f
+        if (grabCutRectF.right > imageWidth)
+            grabCutRectF.right = imageWidth.toFloat()
+        if (grabCutRectF.bottom > imageHeight)
+            grabCutRectF.bottom = imageHeight.toFloat()
+
+    } else {
+        grabCutRect.top = faceRectF.top.toInt()
+        grabCutRect.bottom = imageWidth
+        grabCutRect.left = faceRectF.left.toInt() - faceWidth
+        grabCutRect.right = faceRectF.right.toInt() + faceWidth
+
+        //Rotate Rect back to correct orientation
+        grabCutRectF = RectF(grabCutRect)
+        val grabMatrix: Matrix = Matrix();
+        grabMatrix.setRotate(rotation, grabCutRectF.centerX(), grabCutRectF.centerY());
+        grabMatrix.mapRect(grabCutRectF)
+
+        //Make sure we don't overshoot
+        if (grabCutRectF.left < 0) grabCutRectF.left = 0f
+        if (grabCutRectF.top < 0) grabCutRectF.top = 0f
+        if (grabCutRectF.right > imageHeight)
+            grabCutRectF.right = imageHeight.toFloat()
+        if (grabCutRectF.bottom > imageWidth)
+            grabCutRectF.bottom = imageWidth.toFloat()
+
+    }
+
+    return Rect(grabCutRectF.left.toInt(), grabCutRectF.top.toInt(), grabCutRectF.right.toInt(), grabCutRectF.bottom.toInt())
+*/
 }
