@@ -79,5 +79,6 @@ class CameraParams {
 
     internal var hasFace: Boolean = false
     internal var faceBounds: Rect = Rect(0,0,0,0)
+    internal var expandedFaceBounds: Rect = Rect(0,0,0,0)
     internal var grabCutBounds: Rect = Rect(0,0,0,0)
 }

@@ -56,6 +56,7 @@ import org.opencv.imgproc.Imgproc
 import org.opencv.imgproc.Imgproc.*
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.math.roundToInt
 
 
 class ImageAvailableListener(private val activity: MainActivity, internal var params: CameraParams) : ImageReader.OnImageAvailableListener {
@@ -153,7 +154,6 @@ class ImageSaver internal constructor(private val activity: MainActivity, privat
         var croppedForeground = Bitmap.createBitmap(10, 10, Bitmap.Config.ARGB_8888)
         if (PrefHelper.getGrabCut(activity)) {
 
-            MainActivity.Logd("Image callback Facebounds Bounds: bottom: " + cameraParams.faceBounds.bottom + " left: " + cameraParams.faceBounds.left + " right: " + cameraParams.faceBounds.right + " top: " + cameraParams.faceBounds.top)
             MainActivity.Logd("Image callback Grabcut Bounds: bottom: " + cameraParams.grabCutBounds.bottom + " left: " + cameraParams.grabCutBounds.left + " right: " + cameraParams.grabCutBounds.right + " top: " + cameraParams.grabCutBounds.top)
 
             croppedForeground = doGrabCut(activity, foregroundImageBitmap, cameraParams.grabCutBounds)
@@ -167,7 +167,7 @@ class ImageSaver internal constructor(private val activity: MainActivity, privat
 
             return
         } else {
-            croppedForeground = cropBitmap(activity, foregroundImageBitmap, cameraParams.faceBounds)
+            croppedForeground = cropBitmap(activity, foregroundImageBitmap, cameraParams.expandedFaceBounds)
         }
 
         if (PrefHelper.getSaveIntermediate(activity)) {
@@ -216,7 +216,10 @@ class ImageSaver internal constructor(private val activity: MainActivity, privat
         }
 
         if (wasFaceDetected) {
-            val combinedBitmap = pasteBitmap(activity, blurredBackground, featheredForeground, cameraParams.faceBounds)
+            val pasteRect = Rect(cameraParams.expandedFaceBounds)
+            pasteRect.top = (pasteRect.top.toFloat() * BLUR_SCALE_FACTOR).roundToInt()
+            pasteRect.left = (pasteRect.left.toFloat() * BLUR_SCALE_FACTOR).roundToInt()
+            val combinedBitmap = pasteBitmap(activity, blurredBackground, featheredForeground, pasteRect)
             val rotatedImageBitmap = rotateBitmap(combinedBitmap, capturedImageRotation.toFloat())
 
             var finalBitmap = rotatedImageBitmap
@@ -341,12 +344,16 @@ fun sepiaFilter(activity: Activity, bitmap: Bitmap): Bitmap {
 }
 
 fun drawBox(activity: Activity, cameraParams: CameraParams, bitmap: Bitmap): Bitmap {
+    return drawBox(activity, bitmap, cameraParams.expandedFaceBounds)
+}
+
+fun drawBox(activity: Activity, bitmap: Bitmap, rect: Rect): Bitmap {
     val bitmapBoxed = bitmap.copy(Bitmap.Config.ARGB_8888, true);
     val canvas = Canvas(bitmapBoxed)
     val paint = Paint()
     paint.setColor(Color.GREEN)
     canvas.drawBitmap(bitmap, 0f, 0f, null)
-    canvas.drawRect(cameraParams.faceBounds, paint)
+    canvas.drawRect(rect, paint)
     return bitmapBoxed
 }
 
@@ -410,7 +417,7 @@ fun pasteBitmap(activity: Activity, background: Bitmap, foreground: Bitmap, rect
     val combinedBitmap = Bitmap.createBitmap(background.width, background.height, background.config)
     val canvas = Canvas(combinedBitmap)
     canvas.drawBitmap(background, Matrix(), null)
-    canvas.drawBitmap(foreground, rect.left.toFloat() * BLUR_SCALE_FACTOR, rect.top.toFloat() * BLUR_SCALE_FACTOR, null)
+    canvas.drawBitmap(foreground, rect.left.toFloat(), rect.top.toFloat(), null)
     return combinedBitmap
 }
 
@@ -935,4 +942,23 @@ fun faceBoundsToGrabCutBounds(activity: MainActivity, faceRect: Rect, imageWidth
 
     return Rect(grabCutRectF.left.toInt(), grabCutRectF.top.toInt(), grabCutRectF.right.toInt(), grabCutRectF.bottom.toInt())
 */
+}
+
+fun rotateRect(rect: Rect, rotation: Float, imageCenterX: Int, imageCenterY: Int, horizontalFlip: Boolean = false) {
+    Logd("RotateRect Pre: left: " + rect.left + ", top: " + rect.top + ", right: " + rect.right + ", bottom: " + rect.bottom)
+
+    val rectF: RectF = RectF(rect)
+    val matrix: Matrix = Matrix();
+    matrix.setRotate(rotation, imageCenterX.toFloat(), imageCenterY.toFloat());
+
+    if (horizontalFlip)
+        matrix.preScale(1.0f, -1f, imageCenterX.toFloat(), imageCenterY.toFloat())
+
+    matrix.mapRect(rectF)
+    rect.left = rectF.left.roundToInt()
+    rect.top = rectF.top.roundToInt()
+    rect.right = rectF.right.roundToInt()
+    rect.bottom = rectF.bottom.roundToInt()
+
+    Logd("RotateRect Post: left: " + rect.left + ", top: " + rect.top + ", right: " + rect.right + ", bottom: " + rect.bottom)
 }

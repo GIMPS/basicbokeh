@@ -365,7 +365,7 @@ fun captureStillPicture(activity: MainActivity, params: CameraParams) {
             // Request face detection
             if (CameraMetadata.STATISTICS_FACE_DETECT_MODE_OFF != params.bestFaceDetectionMode)
                 params.captureBuilder?.set(CaptureRequest.STATISTICS_FACE_DETECT_MODE, params.bestFaceDetectionMode)
-//            Logd("FACE-DETECT DEBUG: I am setting face-detect mode to: " + params.bestFaceDetectionMode)
+            Logd("FACE-DETECT DEBUG: I am setting face-detect mode to: " + params.bestFaceDetectionMode)
 
             // Orientation
             val rotation = activity.getWindowManager().getDefaultDisplay().getRotation()

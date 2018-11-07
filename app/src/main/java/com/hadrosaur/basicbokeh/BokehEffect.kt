@@ -27,8 +27,7 @@ import org.opencv.core.Core.getTickFrequency
 import org.opencv.core.Core.getTickCount
 import org.opencv.imgproc.Imgproc.COLOR_BGR2GRAY
 import org.opencv.ximgproc.Ximgproc.createRightMatcher
-
-
+import kotlin.math.roundToInt
 
 
 fun DoBokeh(activity: MainActivity, twoLens: TwoLensCoordinator) : Bitmap {
@@ -404,7 +403,36 @@ for (row in 0 until disparityMapFilteredNormalized.rows()) {
 
     val normalizedMaskBitmap = Bitmap.createBitmap(disparityMatFilteredConverted.cols(), disparityMatFilteredConverted.rows(), Bitmap.Config.ARGB_8888)
     Utils.matToBitmap(disparityMatFilteredConverted, normalizedMaskBitmap)
-    val hardNormalizedMaskBitmap = hardNormalizeDepthMap(activity, normalizedMaskBitmap)
+    var hardNormalizedMaskBitmap = hardNormalizeDepthMap(activity, normalizedMaskBitmap)
+
+    if (twoLens.normalParams.hasFace) {
+        Logd("DoBokeh: Masking in face...")
+        //Let's protect the face of the foreground using face detect
+
+        //Let's take a transparent bitmap same as normal
+        //Then paste rect
+        //Then rotate and flip.
+        //Then past on other bitmap...
+        val clearBitmap = Bitmap.createBitmap(tempNormalBitmap.width, tempNormalBitmap.height, Bitmap.Config.ARGB_8888)
+        val clearCanvas = Canvas(clearBitmap)
+        val clearPaint = Paint()
+        clearPaint.setColor(Color.TRANSPARENT)
+        clearCanvas.drawRect(0f, 0f, clearBitmap.width.toFloat(), clearBitmap.height.toFloat(), clearPaint)
+
+        val faceRect = android.graphics.Rect(twoLens.normalParams.faceBounds)
+        val faceMask = Bitmap.createBitmap(faceRect.width(), faceRect.height(), Bitmap.Config.ARGB_8888)
+        val faceCanvas = Canvas(faceMask)
+        val facePaint = Paint()
+        facePaint.setColor(Color.WHITE)
+        faceCanvas.drawRect(0f, 0f, faceRect.width().toFloat(), faceRect.height().toFloat(), facePaint)
+
+        val protectFaceMask = pasteBitmap(activity, clearBitmap, faceMask, faceRect)
+        val protectFaceMaskScaled = scaleBitmap(activity, protectFaceMask, depthMapScaleFactor)
+        val protectFaceMaskRotated = rotateBitmap(protectFaceMaskScaled, 90f)
+        val protectFaceMaskFlipped = horizontalFlip(protectFaceMaskRotated)
+
+        hardNormalizedMaskBitmap = pasteBitmap(activity, hardNormalizedMaskBitmap, protectFaceMaskFlipped)
+    }
 
     if (PrefHelper.getIntermediate(activity)) {
         //Lay it on a black background

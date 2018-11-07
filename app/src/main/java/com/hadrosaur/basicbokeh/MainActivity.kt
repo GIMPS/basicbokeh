@@ -287,6 +287,7 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         Logd( "In onResume")
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        toggleRotationLock(true)
 
         for (tempCameraParams in cameraParams) {
             //In 28+ we use Executors so don't need the background thread
