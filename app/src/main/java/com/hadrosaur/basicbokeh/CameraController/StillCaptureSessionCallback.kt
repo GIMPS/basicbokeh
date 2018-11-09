@@ -94,10 +94,10 @@ class StillCaptureSessionCallback(val activity: MainActivity, val params: Camera
                 params.hasFace = true
                 params.faceBounds = faces.first().bounds
 
-                params.faceBounds.top -= 20
-                params.faceBounds.bottom += 20
-                params.faceBounds.right += 20
-                params.faceBounds.left -= 20
+                //params.faceBounds.top -= 20
+                //params.faceBounds.bottom += 20
+                //params.faceBounds.right += 20
+                //params.faceBounds.left -= 20
 
                 //TODO    This assumes we are taking max size stills. Need a Prefs setting.
                 params.expandedFaceBounds.top = params.faceBounds.top - (params.maxSize.height / 8)

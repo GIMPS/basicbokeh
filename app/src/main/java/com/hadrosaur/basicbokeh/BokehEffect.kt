@@ -66,8 +66,8 @@ fun DoBokeh(activity: MainActivity, twoLens: TwoLensCoordinator) : Bitmap {
 
     if (PrefHelper.getIntermediate(activity)) {
         activity.runOnUiThread {
-            activity.imageIntermediate1.setImageBitmap(rotateAndFlipBitmap(tempNormalBitmap, getRequiredBitmapRotation(activity)))
-            activity.imageIntermediate2.setImageBitmap(rotateAndFlipBitmap(tempWideBitmap, getRequiredBitmapRotation(activity)))
+            activity.imageIntermediate1.setImageBitmap(rotateFlipScaleBitmap(tempNormalBitmap, getRequiredBitmapRotation(activity)))
+            activity.imageIntermediate2.setImageBitmap(rotateFlipScaleBitmap(tempWideBitmap, getRequiredBitmapRotation(activity)))
         }
     }
 
@@ -427,7 +427,7 @@ for (row in 0 until disparityMapFilteredNormalized.rows()) {
         faceCanvas.drawRect(0f, 0f, faceRect.width().toFloat(), faceRect.height().toFloat(), facePaint)
 
         val protectFaceMask = pasteBitmap(activity, clearBitmap, faceMask, faceRect)
-        val protectFaceMaskScaled = scaleBitmap(activity, protectFaceMask, depthMapScaleFactor)
+        val protectFaceMaskScaled = scaleBitmap(protectFaceMask, depthMapScaleFactor)
         val protectFaceMaskRotated = rotateBitmap(protectFaceMaskScaled, 90f)
         val protectFaceMaskFlipped = horizontalFlip(protectFaceMaskRotated)
 
@@ -452,7 +452,7 @@ for (row in 0 until disparityMapFilteredNormalized.rows()) {
         WriteFile(activity, rotateBitmap(hardNormalizedMaskBitmap,180f), "HardMask")
     }
 
-    val smallNormalBitmap = scaleBitmap(activity, tempNormalBitmap, depthMapScaleFactor)
+    val smallNormalBitmap = scaleBitmap(tempNormalBitmap, depthMapScaleFactor)
     var rotatedSmallNormalBitmap = rotateAndFlipBitmap(smallNormalBitmap, 90f)
     val nicelyMaskedColour = applyMask(activity, rotatedSmallNormalBitmap, hardNormalizedMaskBitmap)
 

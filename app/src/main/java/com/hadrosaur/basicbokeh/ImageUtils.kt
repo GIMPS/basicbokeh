@@ -38,6 +38,7 @@ import android.view.View
 import android.widget.Toast
 import androidx.core.view.ViewCompat.LAYER_TYPE_HARDWARE
 import androidx.core.view.ViewCompat.setLayerType
+import com.hadrosaur.basicbokeh.MainActivity.Companion.DISPLAY_BITMAP_SCALE
 import com.hadrosaur.basicbokeh.MainActivity.Companion.singleLens
 import com.hadrosaur.basicbokeh.MainActivity.Companion.twoLens
 import kotlinx.android.synthetic.main.activity_main.*
@@ -46,8 +47,7 @@ import org.opencv.android.LoaderCallbackInterface
 import org.opencv.android.OpenCVLoader
 import org.opencv.android.Utils
 import org.opencv.core.Core
-import org.opencv.core.Core.merge
-import org.opencv.core.Core.split
+import org.opencv.core.Core.*
 import org.opencv.core.CvType
 import org.opencv.core.CvType.*
 import org.opencv.core.Mat
@@ -174,7 +174,7 @@ class ImageSaver internal constructor(private val activity: MainActivity, privat
             WriteFile(activity, croppedForeground,"CroppedHead")
         }
 
-        val scaledForeground = scaleBitmap(activity, croppedForeground, MainActivity.BLUR_SCALE_FACTOR)
+        val scaledForeground = scaleBitmap(croppedForeground, MainActivity.BLUR_SCALE_FACTOR)
 
         if (PrefHelper.getIntermediate(activity)) {
             activity.runOnUiThread {
@@ -194,7 +194,7 @@ class ImageSaver internal constructor(private val activity: MainActivity, privat
             }
         }
 
-        val scaledBackground = scaleBitmap(activity, backgroundImageBitmap, MainActivity.BLUR_SCALE_FACTOR)
+        val scaledBackground = scaleBitmap(backgroundImageBitmap, MainActivity.BLUR_SCALE_FACTOR)
 
         var sepiaBackground = Bitmap.createBitmap(scaledBackground)
         if (PrefHelper.getSepia(activity))
@@ -264,6 +264,21 @@ class ImageSaver internal constructor(private val activity: MainActivity, privat
 
 }
 
+fun rotateFlipScaleBitmap(original: Bitmap, degrees: Float) : Bitmap {
+    val rotated: Bitmap = rotateBitmap(original, degrees)
+    val flipped: Bitmap = horizontalFlip(rotated)
+    val scaled: Bitmap = scaleBitmap(flipped, DISPLAY_BITMAP_SCALE)
+
+    //We don't want to accidentally recycle the original bitmap
+    if (original != rotated)
+        rotated.recycle()
+
+    if (original != flipped)
+        flipped.recycle()
+
+    return scaled
+}
+
 //Convenience method that recycles unneeded temp bitmap
 fun rotateAndFlipBitmap(original: Bitmap, degrees: Float): Bitmap {
     val rotated: Bitmap = rotateBitmap(original, degrees)
@@ -290,7 +305,7 @@ fun setCapturedPhoto(activity: Activity, imageView: ImageView?, bitmap: Bitmap) 
     activity.runOnUiThread { imageView?.setImageBitmap(bitmap) }
 }
 
-fun scaleBitmap(activity: Activity, bitmap: Bitmap, scaleFactor: Float): Bitmap {
+fun scaleBitmap(bitmap: Bitmap, scaleFactor: Float): Bitmap {
     //If no scale, no-op
     if (1f == scaleFactor)
         return bitmap
@@ -745,7 +760,7 @@ fun doGrabCut(activity: MainActivity, bitmap: Bitmap, rect: Rect) : Bitmap {
 
     val scaleFactor: Float = 0.25f
 
-    val scaledBitmap = scaleBitmap(activity, bitmap, scaleFactor)
+    val scaledBitmap = scaleBitmap(bitmap, scaleFactor)
 
     val cvRect: org.opencv.core.Rect = org.opencv.core.Rect((rect.left * scaleFactor).toInt(), (rect.top * scaleFactor).toInt(),
             (rect.width() * scaleFactor).toInt(), (rect.height() * scaleFactor).toInt())
@@ -768,7 +783,7 @@ fun doGrabCut(activity: MainActivity, bitmap: Bitmap, rect: Rect) : Bitmap {
 
     val foregroundMask = hardNormalizeDepthMap(activity, normalizedBitmap, 254.0)
 
-    val scaledMask = scaleBitmap(activity, foregroundMask, 1f / scaleFactor)
+    val scaledMask = scaleBitmap(foregroundMask, 1f / scaleFactor)
 
     if (PrefHelper.getIntermediate(activity)) {
         //Lay it on a black background

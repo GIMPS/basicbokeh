@@ -83,7 +83,7 @@
             android:summary="%s"
             android:entries="@array/array_settings_foreground_cutoff"
             android:entryValues="@array/array_settings_foreground_cutoff"
-            android:defaultValue="120"
+            android:defaultValue="110"
             />
     </PreferenceCategory>
 
@@ -119,7 +119,7 @@
             android:summary="%s"
             android:entries="@array/array_settings_numdisparities"
             android:entryValues="@array/array_settings_numdisparities"
-            android:defaultValue="32"
+            android:defaultValue="48"
             />
 
         <ListPreference
@@ -149,7 +149,7 @@
             android:summary="%s"
             android:entries="@array/array_settings_prefilter"
             android:entryValues="@array/array_settings_prefilter"
-            android:defaultValue="22"
+            android:defaultValue="11"
             />
 
         <ListPreference
@@ -159,7 +159,7 @@
             android:summary="%s"
             android:entries="@array/array_settings_specklesize"
             android:entryValues="@array/array_settings_specklesize"
-            android:defaultValue="225"
+            android:defaultValue="250"
             />
 
         <ListPreference
@@ -179,7 +179,7 @@
             android:summary="%s"
             android:entries="@array/array_settings_lambda"
             android:entryValues="@array/array_settings_lambda"
-            android:defaultValue="32000"
+            android:defaultValue="44000"
             />
 
         <ListPreference
@@ -189,7 +189,7 @@
             android:summary="%s"
             android:entries="@array/array_settings_sigma"
             android:entryValues="@array/array_settings_sigma"
-            android:defaultValue="1.3"
+            android:defaultValue="2.5"
             />
 
         <CheckBoxPreference

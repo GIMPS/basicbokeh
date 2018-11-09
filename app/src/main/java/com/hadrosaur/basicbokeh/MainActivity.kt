@@ -361,6 +361,7 @@ class MainActivity : AppCompatActivity() {
         const val BLUR_SCALE_FACTOR: Float = 0.25f
         const val NO_APERTURE: Float = 0f
         const val FIXED_FOCUS_DISTANCE: Float = 0f
+        const val DISPLAY_BITMAP_SCALE: Float = 0.20f
         val INVALID_FOCAL_LENGTH: Float = Float.MAX_VALUE
         var NUM_CAMERAS = 0
         var dualCamLogicalId = ""
