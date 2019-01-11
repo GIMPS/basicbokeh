@@ -17,40 +17,23 @@
 package com.hadrosaur.basicbokeh
 
 import android.Manifest
-import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.content.res.Configuration
-import android.graphics.BitmapFactory
-import android.graphics.ImageFormat
-import android.graphics.Rect
-import android.hardware.camera2.CameraAccessException
-import android.hardware.camera2.CameraCharacteristics
-import android.hardware.camera2.CameraManager
-import android.hardware.camera2.CameraMetadata
-import android.hardware.camera2.params.StreamConfigurationMap
-import android.media.ImageReader
 import android.os.*
 import android.preference.PreferenceManager
 import android.util.Log
-import android.util.Size
 import android.util.SparseIntArray
 import android.view.*
-import android.view.textclassifier.TextClassificationManager
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Observer
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProviders
 import kotlinx.android.synthetic.main.activity_main.*
 import org.opencv.android.OpenCVLoader
-import java.io.File
-import java.util.*
-import kotlin.collections.HashMap
 
 
 class MainActivity : AppCompatActivity() {
@@ -187,28 +170,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
         camViewModel.getShowIntermediate().observe(this, intermediateToggleObserver)
-
-        /*
-        val image = BitmapFactory.decodeResource(getResources(), R.drawable.ambush);
-//        val mask = BitmapFactory.decodeResource(getResources(), R.drawable.ambush_filter_trans);
-        val mask = BitmapFactory.decodeResource(getResources(), R.drawable.ambush_filter);
-
-        val normalizedMask = hardNormalizeDepthMap(this, mask)
-        WriteFile(this, normalizedMask, "NormalizedMask")
-
-        val nicelyMasked = applyMask(this, image, normalizedMask)
-        WriteFile(this, nicelyMasked, "NicelyMasked")
-
-        var background = sepiaFilter(this, image)
-        background = gaussianBlur(this, background, BLUR_SCALE_FACTOR)
-        background = gaussianBlur(this, background, BLUR_SCALE_FACTOR)
-        WriteFile(this, background, "Background")
-
-        val finalImage = pasteBitmap(this, background, nicelyMasked, Rect(0, 0, background.width, background.height))
-        WriteFile(this, finalImage, "FinalImage")
-        imagePhoto.setImageBitmap(finalImage)
-*/
-
     }//onCreate
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -362,14 +323,6 @@ class MainActivity : AppCompatActivity() {
         progress_take_photo.visibility = View.GONE
         toggleRotationLock(false)
     }
-
-
-
-    /**
-     * A native method that is implemented by the 'native-lib' native library,
-     * which is packaged with this application.
-     */
-    external fun stringFromJNI(): String
 
     companion object {
         const val NORMAL_FOCAL_LENGTH: Float = 50f

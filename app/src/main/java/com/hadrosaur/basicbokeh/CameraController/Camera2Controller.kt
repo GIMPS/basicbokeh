@@ -16,28 +16,20 @@
 
 package com.hadrosaur.basicbokeh
 
+
 import android.app.Activity
 import android.content.Context
 import android.graphics.Matrix
 import android.graphics.RectF
-import android.graphics.SurfaceTexture
 import android.hardware.camera2.*
-import android.view.Surface
-import android.view.SurfaceHolder
-import android.view.View
-import java.util.*
-
-
-import android.hardware.camera2.CameraAccessException
 import android.hardware.camera2.params.OutputConfiguration
 import android.hardware.camera2.params.SessionConfiguration
-import android.os.AsyncTask
 import android.os.Build
-import android.view.TextureView
+import android.view.Surface
+import android.view.View
 import com.hadrosaur.basicbokeh.CameraController.CameraStateCallback
 import com.hadrosaur.basicbokeh.CameraController.FocusCaptureSessionCallback
 import com.hadrosaur.basicbokeh.CameraController.FocusCaptureSessionCallback.Companion.STATE_PICTURE_TAKEN
-import com.hadrosaur.basicbokeh.CameraController.FocusCaptureSessionCallback.Companion.STATE_WAITING_LOCK
 import com.hadrosaur.basicbokeh.CameraController.FocusCaptureSessionCallback.Companion.STATE_WAITING_PRECAPTURE
 import com.hadrosaur.basicbokeh.CameraController.PreviewSessionStateCallback
 import com.hadrosaur.basicbokeh.CameraController.StillCaptureSessionCallback
@@ -48,11 +40,11 @@ import com.hadrosaur.basicbokeh.MainActivity.Companion.normalLensId
 import com.hadrosaur.basicbokeh.MainActivity.Companion.twoLens
 import com.hadrosaur.basicbokeh.MainActivity.Companion.wideAngleId
 import kotlinx.android.synthetic.main.activity_main.*
+import java.util.*
 
 fun createCameraPreviewSession(activity: MainActivity, camera: CameraDevice, params: CameraParams) {
     Logd("In createCameraPreviewSession.")
     if (!params.isOpen) {
-//        camera2Abort(activity, params, testConfig)
         return
     }
 
@@ -137,7 +129,6 @@ fun createCameraPreviewSession(activity: MainActivity, camera: CameraDevice, par
         e.printStackTrace()
     } catch (e: IllegalStateException) {
         Logd("createCameraPreviewSession IllegalStateException, aborting: " + e)
-        //camera2Abort(activity, params, testConfig)
     }
 }
 
@@ -223,7 +214,6 @@ fun takePicture(activity: MainActivity, params: CameraParams) {
     Logd("TakePicture: capture start.")
 
     if (!params.isOpen) {
-        //camera2Abort(activity, params, testConfig)
         return
     }
 
@@ -233,7 +223,6 @@ fun takePicture(activity: MainActivity, params: CameraParams) {
 fun lockFocus(activity: MainActivity, params: CameraParams) {
     Logd("In lockFocus.")
     if (!params.isOpen) {
-        //camera2Abort(activity, params, testConfig)
         return
     }
 
@@ -276,7 +265,6 @@ fun lockFocus(activity: MainActivity, params: CameraParams) {
 
 fun runPrecaptureSequence(activity: MainActivity, params: CameraParams) {
     if (!params.isOpen) {
-        //camera2Abort(activity, params, testConfig)
         return
     }
 
@@ -305,7 +293,6 @@ fun runPrecaptureSequence(activity: MainActivity, params: CameraParams) {
 
 fun captureStillPicture(activity: MainActivity, params: CameraParams) {
     if (!params.isOpen) {
-        //camera2Abort(activity, params, testConfig)
         return
     }
 
@@ -347,21 +334,8 @@ fun captureStillPicture(activity: MainActivity, params: CameraParams) {
 //                            CameraMetadata.CONTROL_AF_TRIGGER_IDLE);
 //            }
 
-            //Let's add a sepia effect for fun
-            //Only for 2-camera case and the background
-/*            if (params.hasSepia)
-                params.captureBuilder?.set(CaptureRequest.CONTROL_EFFECT_MODE, CameraMetadata.CONTROL_EFFECT_MODE_SEPIA)
-            // Or mono if we don't have sepia
-            else if (params.hasMono)
-                params.captureBuilder?.set(CaptureRequest.CONTROL_EFFECT_MODE, CameraMetadata.CONTROL_EFFECT_MODE_MONO)
-*/
-
             //Otherwise too dark
-//            if (params.id == MainActivity.wideAngleId)
-//                params.captureBuilder?.set(CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION, 5);
-//            else
             params.captureBuilder?.set(CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION, 4);
-
 
             params.captureBuilder?.set(CaptureRequest.JPEG_QUALITY, PrefHelper.getQuality(activity))
 
@@ -369,10 +343,10 @@ fun captureStillPicture(activity: MainActivity, params: CameraParams) {
             //This should disable HDR+ as well
             if (Build.VERSION.SDK_INT >= 28 && PrefHelper.getDualCam(activity)) {
                 params.captureBuilder?.set(CaptureRequest.DISTORTION_CORRECTION_MODE, CameraMetadata.DISTORTION_CORRECTION_MODE_OFF)
-                //This is REQUIRED to disable HDR+ - even though Pixel 3 doesn't have sepia
+                //This is REQUIRED to disable HDR+ on Pixel 3 - even though Pixel 3 doesn't have sepia
                 params.captureBuilder?.set(CaptureRequest.CONTROL_EFFECT_MODE, CameraMetadata.CONTROL_EFFECT_MODE_SEPIA)
             } else {
-                //This is REQUIRED to disable HDR+ - even though Pixel 3 doesn't have sepia
+                //This is REQUIRED to disable HDR+ on Pixel 3 - even though Pixel 3 doesn't have sepia
                 params.captureBuilder?.set(CaptureRequest.CONTROL_EFFECT_MODE, CameraMetadata.CONTROL_EFFECT_MODE_SEPIA)
                 Logd("DUAL CAM DEBUG: I am setting sepia mode.")
 //            Logd("DUAL CAM DEBUG: I am NOT setting sepia mode.")
@@ -407,7 +381,6 @@ fun captureStillPicture(activity: MainActivity, params: CameraParams) {
 
     } catch (e: IllegalStateException) {
         Logd("captureStillPicture IllegalStateException, aborting: " + e)
-        //camera2Abort(activity, params, testConfig)
     }
 }
 
@@ -415,7 +388,6 @@ fun unlockFocus(activity: MainActivity, params: CameraParams) {
     Logd("In unlockFocus.")
 
     if (!params.isOpen) {
-        //camera2Abort(activity, params, testConfig)
         return
     }
 
@@ -433,13 +405,11 @@ fun unlockFocus(activity: MainActivity, params: CameraParams) {
 
     } catch (e: IllegalStateException) {
         Logd("unlockFocus IllegalStateException, aborting: " + e)
-        // camera2Abort(activity, params, testConfig)
     }
 
 }
 
 fun rotatePreviewTexture(activity: MainActivity, params: CameraParams, textureView: AutoFitTextureView) {
-    Logd("I AM ROTATING!!!")
     val rotation: Int = activity.windowManager.defaultDisplay.rotation
 
     val matrix: Matrix = Matrix()

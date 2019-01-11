@@ -16,34 +16,26 @@
 
 package com.hadrosaur.basicbokeh
 
+import android.graphics.*
 import android.os.Build
-import com.hadrosaur.basicbokeh.MainActivity.Companion.BLUR_SCALE_FACTOR
 import com.hadrosaur.basicbokeh.MainActivity.Companion.Logd
 import kotlinx.android.synthetic.main.activity_main.*
 import org.opencv.android.Utils
 import org.opencv.calib3d.Calib3d.CALIB_ZERO_DISPARITY
-import org.opencv.calib3d.StereoSGBM
-import org.opencv.core.CvType.*
-import org.opencv.imgproc.Imgproc
 import org.opencv.calib3d.Calib3d.stereoRectify
-import org.opencv.calib3d.StereoBM
-import java.nio.ByteBuffer
-import org.opencv.calib3d.StereoSGBM.MODE_HH4
-import org.opencv.core.*
+import org.opencv.calib3d.StereoMatcher
+import org.opencv.calib3d.StereoSGBM
+import org.opencv.core.Core
 import org.opencv.core.Core.*
+import org.opencv.core.CvType.*
+import org.opencv.core.Mat
+import org.opencv.core.Rect
+import org.opencv.core.Size
+import org.opencv.imgproc.Imgproc
 import org.opencv.imgproc.Imgproc.*
 import org.opencv.ximgproc.Ximgproc.createDisparityWLSFilter
-import android.graphics.*
-import android.view.View
-import org.opencv.calib3d.StereoMatcher
-import org.opencv.core.Rect
-import org.opencv.core.Mat
-import org.opencv.ximgproc.DisparityWLSFilter
-import org.opencv.core.Core.getTickFrequency
-import org.opencv.core.Core.getTickCount
-import org.opencv.imgproc.Imgproc.COLOR_BGR2GRAY
 import org.opencv.ximgproc.Ximgproc.createRightMatcher
-import kotlin.math.roundToInt
+import java.nio.ByteBuffer
 
 
 fun DoBokeh(activity: MainActivity, twoLens: TwoLensCoordinator) : Bitmap {
@@ -87,35 +79,6 @@ fun DoBokeh(activity: MainActivity, twoLens: TwoLensCoordinator) : Bitmap {
         }
     }
 
-    /*
-    var temp1: Bitmap = Bitmap.createBitmap(tempNormalBitmap)
-    var temp2: Bitmap = Bitmap.createBitmap(tempNormalBitmap)
-    var temp3: Bitmap = Bitmap.createBitmap(tempNormalBitmap)
-    var temp4: Bitmap = Bitmap.createBitmap(tempNormalBitmap)
-    var temp5: Bitmap = Bitmap.createBitmap(tempNormalBitmap)
-    var temp6: Bitmap = Bitmap.createBitmap(tempNormalBitmap)
-    var temp7: Bitmap = Bitmap.createBitmap(tempNormalBitmap)
-    var temp8: Bitmap = Bitmap.createBitmap(tempNormalBitmap)
-    temp1 = rotateAndFlipBitmap(tempNormalBitmap, 90f)
-    temp2 = rotateAndFlipBitmap(temp1, 90f)
-    temp3 = rotateAndFlipBitmap(temp2, 90f)
-    temp4 = rotateAndFlipBitmap(temp3, 90f)
-    temp5 = rotateAndFlipBitmap(temp4, 90f)
-    temp6 = rotateAndFlipBitmap(temp5, 90f)
-    temp7 = rotateAndFlipBitmap(temp6, 90f)
-    temp8 = rotateAndFlipBitmap(temp7, 90f)
-
-
-    temp1.recycle()
-    temp2.recycle()
-    temp3.recycle()
-    temp4.recycle()
-    temp5.recycle()
-    temp6.recycle()
-    temp7.recycle()
-*/
-//                return temp8
-
     if (PrefHelper.getCalibrationMode(activity)) {
         return tempNormalBitmap
     }
@@ -147,7 +110,7 @@ fun DoBokeh(activity: MainActivity, twoLens: TwoLensCoordinator) : Bitmap {
         setMat(distCoeffWide, 5, 1, cameraDistortionFromCalibration(twoLens.wideParams.lensDistortion))
 
         /*
-        Logd("Cam MAtrix K1 Check: "
+        Logd("Cam Matrix K1 Check: "
                 + camMatrixNormal[0, 0].get(0) + ", "
                 + camMatrixNormal[0, 1].get(0) + ", "
                 + camMatrixNormal[0, 2].get(0) + ", "
@@ -159,7 +122,7 @@ fun DoBokeh(activity: MainActivity, twoLens: TwoLensCoordinator) : Bitmap {
                 + camMatrixNormal[2, 2].get(0)
         )
 
-        Logd("Cam MAtrix K2 Check: "
+        Logd("Cam Matrix K2 Check: "
                 + camMatrixWide[0, 0].get(0) + ", "
                 + camMatrixWide[0, 1].get(0) + ", "
                 + camMatrixWide[0, 2].get(0) + ", "
@@ -171,14 +134,6 @@ fun DoBokeh(activity: MainActivity, twoLens: TwoLensCoordinator) : Bitmap {
                 + camMatrixWide[2, 2].get(0)
         )
 */
-        /*
-        distort = np.array(props_physical[i]['android.lens.distortion'])
-            assert len(distort) == 5, 'distortion has wrong # of params.'
-            cv2_distort = np.array([distort[0], distort[1],
-                                    distort[3], distort[4],
-                                    distort[2]])
-         */
-
 
         val poseRotationNormal: Mat = Mat(3, 3, CV_64FC1)
         setMat(poseRotationNormal, 3, 3, rotationMatrixFromQuaternion(twoLens.normalParams.poseRotation))
@@ -215,7 +170,7 @@ fun DoBokeh(activity: MainActivity, twoLens: TwoLensCoordinator) : Bitmap {
         //        print 'lens facing BACK'
         //        chart_distance *= -1  # API spec defines +z i pointing out from screen
 
-
+/*
         Logd("Final Combined Rotation Matrix: "
                 + combinedR[0, 0].get(0) + ", "
                 + combinedR[0, 1].get(0) + ", "
@@ -233,7 +188,7 @@ fun DoBokeh(activity: MainActivity, twoLens: TwoLensCoordinator) : Bitmap {
                 + combinedT[1, 0].get(0) + ", "
                 + combinedT[2, 0].get(0)
         )
-
+*/
         //Stereo rectify
         val R1: Mat = Mat(3, 3, CV_64FC1)
         val R2: Mat = Mat(3, 3, CV_64FC1)
@@ -248,12 +203,14 @@ fun DoBokeh(activity: MainActivity, twoLens: TwoLensCoordinator) : Bitmap {
                 finalNormalMat.size(), combinedR, combinedT, R1, R2, P1, P2, Q,
                 CALIB_ZERO_DISPARITY, 0.0, Size(), roi1, roi2)
 
+        /*
         Logd("R1: " + R1[0,0].get(0) + ", " + R1[0,1].get(0) + ", " + R1[0,2].get(0) + ", " + R1[1,0].get(0) + ", " + R1[1,1].get(0) + ", " + R1[1,2].get(0) + ", " + R1[2,0].get(0) + ", " + R1[2,1].get(0) + ", " + R1[2,2].get(0))
         Logd("R2: " + R2[0,0].get(0) + ", " + R2[0,1].get(0) + ", " + R2[0,2].get(0) + ", " + R2[1,0].get(0) + ", " + R2[1,1].get(0) + ", " + R2[1,2].get(0) + ", " + R2[2,0].get(0) + ", " + R2[2,1].get(0) + ", " + R2[2,2].get(0))
         Logd("P1: " + P1[0,0].get(0) + ", " + P1[0,1].get(0) + ", " + P1[0,2].get(0) + ", " + P1[0,3].get(0) + ", " + P1[1,0].get(0) + ", " + P1[1,1].get(0) + ", " + P1[1,2].get(0) + ", " + P1[1,3].get(0) + ", "
                 + P1[2,0].get(0) + ", " + P1[2,1].get(0) + ", " + P1[2,2].get(0) + ", " + P1[2,3].get(0))
         Logd("P2: " + P2[0,0].get(0) + ", " + P2[0,1].get(0) + ", " + P2[0,2].get(0) + ", " + P2[0,3].get(0) + ", " + P2[1,0].get(0) + ", " + P2[1,1].get(0) + ", " + P2[1,2].get(0) + ", " + P2[1,3].get(0) + ", "
                 + P2[2,0].get(0) + ", " + P2[2,1].get(0) + ", " + P2[2,2].get(0) + ", " + P2[2,3].get(0))
+        */
 
         val mapNormal1: Mat = Mat()
         val mapNormal2: Mat = Mat()
@@ -311,7 +268,7 @@ fun DoBokeh(activity: MainActivity, twoLens: TwoLensCoordinator) : Bitmap {
 
     val depthMapScaleFactor = 0.5f
 
-    //Scale down so we have a chance of not burning through the heap
+    //Scale down so we at least have a chance of not burning through the heap
     resize(finalNormalMat, resizedNormalMat, Size((finalNormalMat.width() * depthMapScaleFactor).toDouble(), (finalNormalMat.height() * depthMapScaleFactor).toDouble()))
     resize(finalWideMat, resizedWideMat, Size((finalWideMat.width()  * depthMapScaleFactor).toDouble(), (finalWideMat.height()  * depthMapScaleFactor).toDouble()))
 
@@ -382,25 +339,7 @@ fun DoBokeh(activity: MainActivity, twoLens: TwoLensCoordinator) : Bitmap {
     var disparityMapFilteredNormalized: Mat = Mat(disparityMatFiltered.rows(), disparityMatFiltered.cols(), CV_8UC1)
     disparityMapFilteredNormalized = disparityMatFiltered
     normalize(disparityMatFiltered, disparityMapFilteredNormalized, 0.0, 255.0, NORM_MINMAX, CV_8U)
-//    disparityMatFiltered.convertTo(disparityMapFilteredNormalized, CV_8UC1, 3 / 16.0)
 
-
-/*var filteredValues = ""
-    var counter = 0
-for (row in 0 until disparityMapFilteredNormalized.rows()) {
-    for (col in 0 until disparityMapFilteredNormalized.cols()) {
-        if ( 0.0 == disparityMapFilteredNormalized.get(row, col)[0])
-            continue
-        counter++
-        filteredValues += "" + disparityMapFilteredNormalized.get(row, col)[0] + ", "
-        if (600 < counter)
-            break
-    }
-    if (600 < counter)
-        break
-}
-    Logd("Normalized Filtered Disparity Map Values " + filteredValues )
-*/
     val disparityMatFilteredConverted: Mat = Mat(disparityMapFilteredNormalized.rows(), disparityMapFilteredNormalized.cols(), CV_8UC1)
     disparityMapFilteredNormalized.convertTo(disparityMatFilteredConverted, CV_8UC1)
 
@@ -506,15 +445,13 @@ for (row in 0 until disparityMapFilteredNormalized.rows()) {
 
 fun floatArraytoDoubleArray(fArray: FloatArray) : DoubleArray {
     val dArray: DoubleArray = DoubleArray(fArray.size)
-//    Logd("floatArraytoDouble: START")
 
     var output = ""
     for ((index, float) in fArray.withIndex()) {
         dArray.set(index, float.toDouble())
         output += "" + float.toDouble() + ", "
     }
-//    Logd(output)
-//    Logd("floatArraytoDouble: END")
+
     return dArray
 }
 

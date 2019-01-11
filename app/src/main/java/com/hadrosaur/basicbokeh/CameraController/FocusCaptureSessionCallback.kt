@@ -24,7 +24,6 @@ class FocusCaptureSessionCallback(val activity: MainActivity, internal var param
     override fun onCaptureSequenceCompleted(session: CameraCaptureSession?, sequenceId: Int, frameNumber: Long) {
         MainActivity.Logd("CaptureSessionCallback : Capture sequence COMPLETED")
         if (!params.isOpen) {
-            //camera2Abort(activity, params, testConfig)
             return
         }
         super.onCaptureSequenceCompleted(session, sequenceId, frameNumber)
@@ -33,7 +32,6 @@ class FocusCaptureSessionCallback(val activity: MainActivity, internal var param
     override fun onCaptureSequenceAborted(session: CameraCaptureSession?, sequenceId: Int) {
         MainActivity.Logd("CaptureSessionCallback : Capture sequence ABORTED")
         if (!params.isOpen) {
-            //camera2Abort(activity, params, testConfig)
             return
         }
 
@@ -43,26 +41,21 @@ class FocusCaptureSessionCallback(val activity: MainActivity, internal var param
     override fun onCaptureFailed(session: CameraCaptureSession?, request: CaptureRequest?, failure: CaptureFailure?) {
         MainActivity.Logd("CaptureSessionCallback : Capture sequence FAILED - " + failure?.reason)
         if (!params.isOpen) {
-            //camera2Abort(activity, params, testConfig)
             return
         }
 
         //There is a device failure this might help
         closeCamera(params, activity)
         camera2OpenCamera(activity, params)
-
-        //super.onCaptureFailed(session, request, failure)
     }
 
     private fun process(result: CaptureResult) {
-//        Logd("CaptureSessionCallback in process")
         if (!params.isOpen) {
             return
         }
 
         when (params.state) {
             STATE_PREVIEW -> {
-//                Logd("CaptureSessionCallback : STATE_PREVIEW, everything good.")
             }// We have nothing to do when the camera preview is working normally.
 
             STATE_WAITING_LOCK -> {

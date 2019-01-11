@@ -21,23 +21,22 @@ import android.hardware.camera2.CameraCaptureSession
 import android.hardware.camera2.CaptureRequest
 import android.os.Build
 import androidx.annotation.NonNull
-import com.hadrosaur.basicbokeh.*
 import com.hadrosaur.basicbokeh.CameraController.FocusCaptureSessionCallback.Companion.STATE_PREVIEW
+import com.hadrosaur.basicbokeh.CameraParams
+import com.hadrosaur.basicbokeh.MainActivity
+import com.hadrosaur.basicbokeh.createCameraPreviewSession
 
 class PreviewSessionStateCallback(val activity: MainActivity, val params: CameraParams) : CameraCaptureSession.StateCallback() {
     override fun onActive(session: CameraCaptureSession?) {
         if (!params.isOpen) {
-            //camera2Abort(activity, params, testConfig)
             return
         }
 
-        //        takePicture(activity, params)
         super.onActive(session)
     }
 
     override fun onReady(session: CameraCaptureSession?) {
         if (!params.isOpen) {
-            //camera2Abort(activity, params, testConfig)
             return
         }
 
@@ -49,7 +48,6 @@ class PreviewSessionStateCallback(val activity: MainActivity, val params: Camera
 
     override fun onConfigured(@NonNull cameraCaptureSession: CameraCaptureSession) {
         if (!params.isOpen) {
-            //camera2Abort(activity, params, testConfig)
             return
         }
 
@@ -84,7 +82,6 @@ class PreviewSessionStateCallback(val activity: MainActivity, val params: Camera
     override fun onConfigureFailed(
             @NonNull cameraCaptureSession: CameraCaptureSession) {
         if (!params.isOpen) {
-            //camera2Abort(activity, params, testConfig)
             return
         }
 

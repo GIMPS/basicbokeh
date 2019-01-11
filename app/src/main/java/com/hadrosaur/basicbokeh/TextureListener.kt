@@ -16,15 +16,9 @@
 
 package com.hadrosaur.basicbokeh
 
-import android.graphics.Matrix
-import android.graphics.RectF
 import android.graphics.SurfaceTexture
-import android.hardware.camera2.CameraCharacteristics
-import android.view.Surface
 import android.view.SurfaceHolder
 import android.view.TextureView
-import com.hadrosaur.basicbokeh.MainActivity.Companion.Logd
-import java.lang.Exception
 
 
 class TextureListener(internal var params: CameraParams, internal val activity: MainActivity, internal val textureView: AutoFitTextureView): TextureView.SurfaceTextureListener {

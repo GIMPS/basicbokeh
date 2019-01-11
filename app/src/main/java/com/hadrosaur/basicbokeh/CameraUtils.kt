@@ -19,26 +19,21 @@ package com.hadrosaur.basicbokeh
 import android.app.Activity
 import android.content.Context
 import android.graphics.ImageFormat
-import android.graphics.Matrix
-import android.graphics.RectF
 import android.hardware.camera2.*
 import android.media.ImageReader
 import android.os.Build
 import android.util.Log
-import android.util.SparseIntArray
 import android.view.Surface
 import androidx.appcompat.app.AppCompatActivity
-import com.hadrosaur.basicbokeh.MainActivity.Companion.LOG_TAG
-import com.hadrosaur.basicbokeh.MainActivity.Companion.ORIENTATIONS
-import kotlinx.android.synthetic.main.activity_main.*
-import java.util.*
-import android.hardware.camera2.CameraCharacteristics
 import com.hadrosaur.basicbokeh.CameraController.CameraStateCallback
 import com.hadrosaur.basicbokeh.CameraController.FocusCaptureSessionCallback
+import com.hadrosaur.basicbokeh.MainActivity.Companion.LOG_TAG
 import com.hadrosaur.basicbokeh.MainActivity.Companion.Logd
+import com.hadrosaur.basicbokeh.MainActivity.Companion.ORIENTATIONS
 import com.hadrosaur.basicbokeh.MainActivity.Companion.normalLensId
 import com.hadrosaur.basicbokeh.MainActivity.Companion.wideAngleId
-import kotlin.collections.ArrayList
+import kotlinx.android.synthetic.main.activity_main.*
+import java.util.*
 
 
 fun initializeCameras(activity: MainActivity) {

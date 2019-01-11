@@ -26,7 +26,6 @@ import android.os.AsyncTask
 import android.os.Handler
 import android.os.HandlerThread
 import android.util.Size
-import android.view.TextureView
 import android.widget.ImageView
 import com.hadrosaur.basicbokeh.CameraController.CameraStateCallback
 import com.hadrosaur.basicbokeh.CameraController.FocusCaptureSessionCallback

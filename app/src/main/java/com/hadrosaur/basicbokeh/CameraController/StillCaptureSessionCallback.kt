@@ -32,7 +32,6 @@ class StillCaptureSessionCallback(val activity: MainActivity, val params: Camera
 
     override fun onCaptureSequenceAborted(session: CameraCaptureSession?, sequenceId: Int) {
         if (!params.isOpen) {
-            //camera2Abort(activity, params, testConfig)
             return
         }
 
@@ -42,7 +41,6 @@ class StillCaptureSessionCallback(val activity: MainActivity, val params: Camera
 
     override fun onCaptureFailed(session: CameraCaptureSession?, request: CaptureRequest?, failure: CaptureFailure?) {
         if (!params.isOpen) {
-            //camera2Abort(activity, params, testConfig)
             return
         }
 
@@ -56,7 +54,6 @@ class StillCaptureSessionCallback(val activity: MainActivity, val params: Camera
 
     override fun onCaptureStarted(session: CameraCaptureSession?, request: CaptureRequest?, timestamp: Long, frameNumber: Long) {
         if (!params.isOpen) {
-            //camera2Abort(activity, params, testConfig)
             return
         }
 
@@ -66,7 +63,6 @@ class StillCaptureSessionCallback(val activity: MainActivity, val params: Camera
 
     override fun onCaptureProgressed(session: CameraCaptureSession?, request: CaptureRequest?, partialResult: CaptureResult?) {
         if (!params.isOpen) {
-            //camera2Abort(activity, params, testConfig)
             return
         }
 
@@ -76,7 +72,6 @@ class StillCaptureSessionCallback(val activity: MainActivity, val params: Camera
 
     override fun onCaptureBufferLost(session: CameraCaptureSession?, request: CaptureRequest?, target: Surface?, frameNumber: Long) {
         if (!params.isOpen) {
-            //camera2Abort(activity, params, testConfig)
             return
         }
 
@@ -88,7 +83,6 @@ class StillCaptureSessionCallback(val activity: MainActivity, val params: Camera
                                     @NonNull request: CaptureRequest,
                                     @NonNull result: TotalCaptureResult) {
         if (!params.isOpen) {
-            //camera2Abort(activity, params, testConfig)
             return
         }
 
@@ -191,7 +185,5 @@ class StillCaptureSessionCallback(val activity: MainActivity, val params: Camera
 
         MainActivity.Logd("captureStillPicture onCaptureCompleted. CaptureEnd.")
         createCameraPreviewSession(activity, params.device!!, params)
-
-//        params.captureBuilder?.removeTarget(params.imageReader?.getSurface())
     }
 }

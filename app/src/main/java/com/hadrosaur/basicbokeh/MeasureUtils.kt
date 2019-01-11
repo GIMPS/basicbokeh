@@ -16,7 +16,6 @@
 
 package com.hadrosaur.basicbokeh
 
-import android.util.Log
 import android.util.Size
 import com.hadrosaur.basicbokeh.MainActivity.Companion.Logd
 import java.util.*

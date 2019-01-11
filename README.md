@@ -1,6 +1,6 @@
 # BasicBokeh
 
-## This is not an official Google product
+## This is not an officially supported Google product
 
 This app is an alpha quality project to explore generating
 depth maps using phones with dual cameras.
@@ -14,6 +14,11 @@ This requires SDK 28 and the following CameraCharacteristics:
 This project was developed for and tested on the Pixel 3 phone. Other devices may not work out of 
 the box.
 
+## TODOs
+ - Test on other multi-camera devices
+ - Ensure multi-camera works on back cameras
+ - Fix rotation and large screen support
+ 
 ***
 
 Copyright 2018 Google LLC

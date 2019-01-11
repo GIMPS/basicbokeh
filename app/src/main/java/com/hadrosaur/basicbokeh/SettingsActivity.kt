@@ -19,9 +19,6 @@ package com.hadrosaur.basicbokeh
 import android.content.SharedPreferences
 import android.os.Bundle
 import android.preference.PreferenceActivity
-import android.util.Log
-import androidx.lifecycle.ViewModelProviders
-import com.hadrosaur.basicbokeh.MainActivity.Companion.Logd
 
 class SettingsActivity : PreferenceActivity(), SharedPreferences.OnSharedPreferenceChangeListener {
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {

@@ -37,7 +37,6 @@ class CameraStateCallback(internal var params: CameraParams, internal var activi
     override fun onDisconnected(@NonNull cameraDevice: CameraDevice) {
         MainActivity.Logd("In CameraStateCallback onDisconnected: " + params.id)
         if (!params.isOpen) {
-            //camera2Abort(activity, params, testConfig)
             return
         }
 
@@ -47,7 +46,6 @@ class CameraStateCallback(internal var params: CameraParams, internal var activi
     override fun onError(@NonNull cameraDevice: CameraDevice, error: Int) {
         MainActivity.Logd("In CameraStateCallback onError: " + cameraDevice.id + " and error: " + error)
         if (!params.isOpen) {
-            //camera2Abort(activity, params, testConfig)
             return
         }
 
