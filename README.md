@@ -2,8 +2,7 @@
 
 ## This is not an officially supported Google product
 
-This app is an alpha quality project to explore generating
-depth maps using phones with dual cameras.
+This app is an alpha quality project to explore generating depth maps using phones with dual cameras. This project was demoed at the [Google Android Developer Summit 2018](https://www.youtube.com/watch?v=u38wOv2a_dA)
 
 Do not use any of this code in production.
 
@@ -30,7 +29,7 @@ Note: FaceDetect is used to “protect” the face from being excluded
 **Dual-cam**: use single cam or dual cam mode
 **Show steps**: show the intermediate bokeh creation steps
 **Output log:** output debugging log to logcat. Default: on
-**Use GrabCut:** in single cam mode, use GrabCut to attempt to do better than just a square using the GrabCut algorithm.
+**Use GrabCut:** in single cam mode, use GrabCut to attempt to do better than just a square using the [GrabCut](https://docs.opencv.org/trunk/d8/d83/tutorial_py_grabcut.html) algorithm.
 **Save intermediate steps:** save the intermediate processing steps to DCIM/BasicBokeh directory
 **JPG Quality:** jpeg quality for capture request
 **Manual calibration:** override calibration values from API (currently not implemented)
@@ -38,8 +37,8 @@ Note: FaceDetect is used to “protect” the face from being excluded
 **Sepia/Mono:** select either Sepia or Monochrome effect for Bokeh effects
 **Blur:** blur background in Bokeh effects
 **Foreground cutoff:** cutoff value for foreground/background in depth map. Lower values mean more is included in foreground.
-**SGBM settings:** depth map creation settings. Corresponds to StereoSGBM documentation
-**WLS Filter settings:** WLS filter settings. Corresponds to DisparityWLSFiter settings
+**SGBM settings:** depth map creation settings. Corresponds to [StereoSGBM](https://docs.opencv.org/trunk/d2/d85/classcv_1_1StereoSGBM.html) documentation
+**WLS Filter settings:** WLS filter settings. Corresponds to [DisparityWLSFiter](https://docs.opencv.org/master/d9/d51/classcv_1_1ximgproc_1_1DisparityWLSFilter.html) settings
 
 ## Images
 Images are stored under /DCIM/BasicBokeh 
