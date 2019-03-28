@@ -30,6 +30,7 @@ import com.hadrosaur.basicbokeh.MainActivity.Companion.wideAngleId
 
 class StillCaptureSessionCallback(val activity: MainActivity, val params: CameraParams) : CameraCaptureSession.CaptureCallback() {
 
+
     override fun onCaptureSequenceAborted(session: CameraCaptureSession?, sequenceId: Int) {
         if (!params.isOpen) {
             return
@@ -88,50 +89,50 @@ class StillCaptureSessionCallback(val activity: MainActivity, val params: Camera
 
         MainActivity.Logd("captureStillPicture onCaptureCompleted. Hooray!.")
 
-        val mode = result.get(CaptureResult.STATISTICS_FACE_DETECT_MODE)
-        val faces = result.get(CaptureResult.STATISTICS_FACES)
-
-        MainActivity.Logd("FACE-DETECT DEBUG: in onCaptureCompleted. CaptureResult.STATISTICS_FACE_DETECT_MODE is: " + mode)
-
-        if (faces != null && mode != null) {
-            MainActivity.Logd("faces : " + faces.size + " , mode : " + mode)
-            for (face in faces) {
-                val rect = face.bounds
-                MainActivity.Logd("Bounds: bottom: " + rect.bottom + " left: " + rect.left + " right: " + rect.right + " top: " + rect.top)
-            }
-            MainActivity.Logd("Image size: " + params.maxSize.width + " x " + params.maxSize.height)
-            if (faces.isNotEmpty()) {
-                params.hasFace = true
-                params.faceBounds = faces.first().bounds
-
-                //params.faceBounds.top -= 20
-                //params.faceBounds.bottom += 20
-                //params.faceBounds.right += 20
-                //params.faceBounds.left -= 20
-
-                //TODO    This assumes we are taking max size stills. Need a Prefs setting.
-                params.expandedFaceBounds.top = params.faceBounds.top - (params.maxSize.height / 8)
-                params.expandedFaceBounds.bottom = params.faceBounds.bottom + (params.maxSize.height / 8)
-                params.expandedFaceBounds.right = params.faceBounds.right + (params.maxSize.width / 8)
-                params.expandedFaceBounds.left = params.faceBounds.left - (params.maxSize.width / 8)
-
-                //Make sure we don't overshoot
-                if (params.expandedFaceBounds.left < 0) params.expandedFaceBounds.left = 0
-                if (params.expandedFaceBounds.top < 0) params.expandedFaceBounds.top = 0
-                if (params.expandedFaceBounds.right > params.maxSize.width)
-                    params.expandedFaceBounds.right = params.maxSize.width
-                if (params.expandedFaceBounds.bottom > params.maxSize.height)
-                    params.expandedFaceBounds.bottom = params.maxSize.height
-
-                MainActivity.Logd("Adjusted Face Bounds: bottom: " + params.expandedFaceBounds.bottom + " left: " + params.expandedFaceBounds.left + " right: " + params.expandedFaceBounds.right + " top: " + params.expandedFaceBounds.top)
-
-                if (PrefHelper.getGrabCut(activity)) {
-                    //Expand facebox to include an extra "head" to left and right, and all the way to bottom of photo
-                    params.grabCutBounds = faceBoundsToGrabCutBounds(activity, params.expandedFaceBounds, params.maxSize.width, params.maxSize.height)
-                    MainActivity.Logd("Grabcut Bounds: bottom: " + params.grabCutBounds.bottom + " left: " + params.grabCutBounds.left + " right: " + params.grabCutBounds.right + " top: " + params.grabCutBounds.top)
-                }
-            }
-        }
+//        val mode = result.get(CaptureResult.STATISTICS_FACE_DETECT_MODE)
+//        val faces = result.get(CaptureResult.STATISTICS_FACES)
+//
+//        MainActivity.Logd("FACE-DETECT DEBUG: in onCaptureCompleted. CaptureResult.STATISTICS_FACE_DETECT_MODE is: " + mode)
+//
+//        if (faces != null && mode != null) {
+//            MainActivity.Logd("faces : " + faces.size + " , mode : " + mode)
+//            for (face in faces) {
+//                val rect = face.bounds
+//                MainActivity.Logd("Bounds: bottom: " + rect.bottom + " left: " + rect.left + " right: " + rect.right + " top: " + rect.top)
+//            }
+//            MainActivity.Logd("Image size: " + params.maxSize.width + " x " + params.maxSize.height)
+//            if (faces.isNotEmpty()) {
+//                params.hasFace = true
+//                params.faceBounds = faces.first().bounds
+//
+//                //params.faceBounds.top -= 20
+//                //params.faceBounds.bottom += 20
+//                //params.faceBounds.right += 20
+//                //params.faceBounds.left -= 20
+//
+//                //TODO    This assumes we are taking max size stills. Need a Prefs setting.
+//                params.expandedFaceBounds.top = params.faceBounds.top - (params.maxSize.height / 8)
+//                params.expandedFaceBounds.bottom = params.faceBounds.bottom + (params.maxSize.height / 8)
+//                params.expandedFaceBounds.right = params.faceBounds.right + (params.maxSize.width / 8)
+//                params.expandedFaceBounds.left = params.faceBounds.left - (params.maxSize.width / 8)
+//
+//                //Make sure we don't overshoot
+//                if (params.expandedFaceBounds.left < 0) params.expandedFaceBounds.left = 0
+//                if (params.expandedFaceBounds.top < 0) params.expandedFaceBounds.top = 0
+//                if (params.expandedFaceBounds.right > params.maxSize.width)
+//                    params.expandedFaceBounds.right = params.maxSize.width
+//                if (params.expandedFaceBounds.bottom > params.maxSize.height)
+//                    params.expandedFaceBounds.bottom = params.maxSize.height
+//
+//                MainActivity.Logd("Adjusted Face Bounds: bottom: " + params.expandedFaceBounds.bottom + " left: " + params.expandedFaceBounds.left + " right: " + params.expandedFaceBounds.right + " top: " + params.expandedFaceBounds.top)
+//
+//                if (PrefHelper.getGrabCut(activity)) {
+//                    //Expand facebox to include an extra "head" to left and right, and all the way to bottom of photo
+//                    params.grabCutBounds = faceBoundsToGrabCutBounds(activity, params.expandedFaceBounds, params.maxSize.width, params.maxSize.height)
+//                    MainActivity.Logd("Grabcut Bounds: bottom: " + params.grabCutBounds.bottom + " left: " + params.grabCutBounds.left + " right: " + params.grabCutBounds.right + " top: " + params.grabCutBounds.top)
+//                }
+//            }
+//        }
 
         //It might be that we received this callback first and we're waiting for the image
         if (twoLens.isTwoLensShot) {
@@ -186,4 +187,7 @@ class StillCaptureSessionCallback(val activity: MainActivity, val params: Camera
         MainActivity.Logd("captureStillPicture onCaptureCompleted. CaptureEnd.")
         createCameraPreviewSession(activity, params.device!!, params)
     }
+
+
+
 }

@@ -29,18 +29,20 @@ class TextureListener(internal var params: CameraParams, internal val activity: 
 
     override fun onSurfaceTextureAvailable(texture: SurfaceTexture, width: Int, height: Int) {
         MainActivity.Logd("In surfaceTextureAvailable. Id: " + params.id)
-
+        MainActivity.Logd( MainActivity.wideAngleId)
+        MainActivity.Logd(MainActivity.normalLensId)
         //If we are a dual cam case, and both preview surfaces are ready, open them both
         if (!MainActivity.dualCamLogicalId.equals("")
                 && MainActivity.cameraParams.get(MainActivity.wideAngleId)?.previewTextureView?.isAvailable == true
-                && MainActivity.cameraParams.get(MainActivity.normalLensId)?.previewTextureView?.isAvailable == true) {
+//                && MainActivity.cameraParams.get(MainActivity.normalLensId)?.previewTextureView?.isAvailable == true
+        ) {
             val dualParams: CameraParams? = MainActivity.cameraParams.get(MainActivity.dualCamLogicalId)
             if (null != dualParams) {
                 camera2OpenCamera(activity, dualParams)
             }
         } else {
             //Else, no dual cam and our surface is ready
-            camera2OpenCamera(activity, params)
+//            camera2OpenCamera(activity, params)
         }
     }
 

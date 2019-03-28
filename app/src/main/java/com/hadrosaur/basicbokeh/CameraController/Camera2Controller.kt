@@ -59,34 +59,38 @@ fun createCameraPreviewSession(activity: MainActivity, camera: CameraDevice, par
             if (null == normalParams || null == wideParams)
                 return
 
-            val normalTexture = normalParams.previewTextureView?.surfaceTexture
+//            val normalTexture = normalParams.previewTextureView?.surfaceTexture
             val wideTexture = wideParams.previewTextureView?.surfaceTexture
 
-            if (null == normalTexture || null == wideTexture)
-                return
+//            if (null == normalTexture || null == wideTexture)
+//                return
 
-            val normalSurface = Surface(normalTexture)
+//            normalTexture.setDefaultBufferSize(400,400)
+            wideTexture!!.setDefaultBufferSize(400,400)
+
+//            val normalSurface = Surface(normalTexture)
             val wideSurface = Surface(wideTexture)
 
-            if (null == normalSurface || null == wideSurface)
-                return
+//            if (null == normalSurface || null == wideSurface)
+//                return
 
-            val normalOutputConfigPreview = OutputConfiguration(normalSurface)
-            val normalOutputConfigImageReader = OutputConfiguration(normalParams.imageReader?.surface!!)
-            normalOutputConfigPreview.setPhysicalCameraId(normalLensId)
-            normalOutputConfigImageReader.setPhysicalCameraId(normalLensId)
 
             val wideOutputConfigPreview = OutputConfiguration(wideSurface)
             val wideOutputConfigImageReader = OutputConfiguration(wideParams.imageReader?.surface!!)
             wideOutputConfigPreview.setPhysicalCameraId(wideAngleId)
             wideOutputConfigImageReader.setPhysicalCameraId(wideAngleId)
 
+//            val normalOutputConfigPreview = OutputConfiguration(normalSurface)
+            val normalOutputConfigImageReader = OutputConfiguration(normalParams.imageReader?.surface!!)
+//            normalOutputConfigPreview.setPhysicalCameraId(normalLensId)
+            normalOutputConfigImageReader.setPhysicalCameraId(normalLensId)
+
             val sessionConfig = SessionConfiguration(SessionConfiguration.SESSION_REGULAR,
-                    Arrays.asList(normalOutputConfigPreview, normalOutputConfigImageReader, wideOutputConfigPreview, wideOutputConfigImageReader),
-                    params.backgroundExecutor, PreviewSessionStateCallback(activity, params))
+                Arrays.asList( normalOutputConfigImageReader, wideOutputConfigPreview, wideOutputConfigImageReader),
+                params.backgroundExecutor, PreviewSessionStateCallback(activity, params))
 
             params.previewBuilder = camera.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
-            params.previewBuilder?.addTarget(normalSurface)
+//            params.previewBuilder?.addTarget(normalSurface)
             params.previewBuilder?.addTarget(wideSurface)
 
             camera.createCaptureSession(sessionConfig)
@@ -113,14 +117,14 @@ fun createCameraPreviewSession(activity: MainActivity, camera: CameraDevice, par
             // Here, we create a CameraCaptureSession for camera preview.
             if (Build.VERSION.SDK_INT >= 28) {
                 val sessionConfig = SessionConfiguration(SessionConfiguration.SESSION_REGULAR,
-                        Arrays.asList(OutputConfiguration(surface), OutputConfiguration(imageSurface)),
-                        params.backgroundExecutor, PreviewSessionStateCallback(activity, params))
+                    Arrays.asList(OutputConfiguration(surface), OutputConfiguration(imageSurface)),
+                    params.backgroundExecutor, PreviewSessionStateCallback(activity, params))
 
                 camera.createCaptureSession(sessionConfig)
 
             } else {
                 camera.createCaptureSession(Arrays.asList(surface, imageSurface),
-                        PreviewSessionStateCallback(activity, params), params.backgroundHandler)
+                    PreviewSessionStateCallback(activity, params), params.backgroundHandler)
             }
 
         }
@@ -240,7 +244,7 @@ fun lockFocus(activity: MainActivity, params: CameraParams) {
 //                params.captureBuilder?.addTarget(params.imageReader?.getSurface())
 //                params.captureBuilder?.set(CaptureRequest.CONTROL_AF_TRIGGER,
 //                        CameraMetadata.CONTROL_AF_TRIGGER_START);
- //               params.captureBuilder?.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_AUTO)
+                //               params.captureBuilder?.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_AUTO)
 //                params.captureBuilder?.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE)
                 params.state = STATE_PICTURE_TAKEN
                 captureStillPicture(activity, params)
@@ -248,7 +252,7 @@ fun lockFocus(activity: MainActivity, params: CameraParams) {
 
 //                params.state = STATE_WAITING_LOCK
 //                params.captureSession?.capture(params.captureBuilder?.build(), params.captureCallback,
- //                       params.backgroundHandler)
+                //                       params.backgroundHandler)
 
                 //Otherwise, a fixed focus lens so we can go straight to taking the image
             } else {
@@ -274,7 +278,7 @@ fun runPrecaptureSequence(activity: MainActivity, params: CameraParams) {
         if (null != camera) {
             setAutoFlash(activity, camera, params.captureBuilder)
             params.captureBuilder?.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER,
-                    CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_START)
+                CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_START)
 
             params.state = STATE_WAITING_PRECAPTURE
 
@@ -282,7 +286,7 @@ fun runPrecaptureSequence(activity: MainActivity, params: CameraParams) {
                 params.captureSession?.captureSingleRequest(params.captureBuilder?.build(), params.backgroundExecutor, params.captureCallback)
             else
                 params.captureSession?.capture(params.captureBuilder?.build(), params.captureCallback,
-                        params.backgroundHandler)
+                    params.backgroundHandler)
 
         }
     } catch (e: CameraAccessException) {
@@ -305,6 +309,8 @@ fun captureStillPicture(activity: MainActivity, params: CameraParams) {
             params.captureBuilder = camera.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE)
 //            params.captureBuilder?.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE)
             params.captureBuilder?.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_AUTO)
+
+
 //            setAutoFlash(activity, camera, params.captureBuilder)
 
             if (params.id.equals(dualCamLogicalId) && twoLens.isTwoLensShot) {
@@ -335,27 +341,28 @@ fun captureStillPicture(activity: MainActivity, params: CameraParams) {
 //            }
 
             //Otherwise too dark
-            params.captureBuilder?.set(CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION, 4);
+//            params.captureBuilder?.set(CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION, 4);
+
 
             params.captureBuilder?.set(CaptureRequest.JPEG_QUALITY, PrefHelper.getQuality(activity))
 
             //We are going to try and correct distortion, so we disable automatic correction
             //This should disable HDR+ as well
-            if (Build.VERSION.SDK_INT >= 28 && PrefHelper.getDualCam(activity)) {
-                params.captureBuilder?.set(CaptureRequest.DISTORTION_CORRECTION_MODE, CameraMetadata.DISTORTION_CORRECTION_MODE_OFF)
-                //This is REQUIRED to disable HDR+ on Pixel 3 - even though Pixel 3 doesn't have sepia
-                params.captureBuilder?.set(CaptureRequest.CONTROL_EFFECT_MODE, CameraMetadata.CONTROL_EFFECT_MODE_SEPIA)
-            } else {
-                //This is REQUIRED to disable HDR+ on Pixel 3 - even though Pixel 3 doesn't have sepia
-                params.captureBuilder?.set(CaptureRequest.CONTROL_EFFECT_MODE, CameraMetadata.CONTROL_EFFECT_MODE_SEPIA)
-                Logd("DUAL CAM DEBUG: I am setting sepia mode.")
-//            Logd("DUAL CAM DEBUG: I am NOT setting sepia mode.")
-            }
-
-            // Request face detection
-            if (CameraMetadata.STATISTICS_FACE_DETECT_MODE_OFF != params.bestFaceDetectionMode)
-                params.captureBuilder?.set(CaptureRequest.STATISTICS_FACE_DETECT_MODE, params.bestFaceDetectionMode)
-            Logd("FACE-DETECT DEBUG: I am setting face-detect mode to: " + params.bestFaceDetectionMode)
+//            if (Build.VERSION.SDK_INT >= 28 && PrefHelper.getDualCam(activity)) {
+//                params.captureBuilder?.set(CaptureRequest.DISTORTION_CORRECTION_MODE, CameraMetadata.DISTORTION_CORRECTION_MODE_OFF)
+//                //This is REQUIRED to disable HDR+ on Pixel 3 - even though Pixel 3 doesn't have sepia
+//                params.captureBuilder?.set(CaptureRequest.CONTROL_EFFECT_MODE, CameraMetadata.CONTROL_EFFECT_MODE_SEPIA)
+//            } else {
+//                //This is REQUIRED to disable HDR+ on Pixel 3 - even though Pixel 3 doesn't have sepia
+//                params.captureBuilder?.set(CaptureRequest.CONTROL_EFFECT_MODE, CameraMetadata.CONTROL_EFFECT_MODE_SEPIA)
+//                Logd("DUAL CAM DEBUG: I am setting sepia mode.")
+////            Logd("DUAL CAM DEBUG: I am NOT setting sepia mode.")
+//            }
+//
+//            // Request face detection
+//            if (CameraMetadata.STATISTICS_FACE_DETECT_MODE_OFF != params.bestFaceDetectionMode)
+//                params.captureBuilder?.set(CaptureRequest.STATISTICS_FACE_DETECT_MODE, params.bestFaceDetectionMode)
+//            Logd("FACE-DETECT DEBUG: I am setting face-detect mode to: " + params.bestFaceDetectionMode)
 
             // Orientation
             val rotation = activity.getWindowManager().getDefaultDisplay().getRotation()
@@ -368,13 +375,13 @@ fun captureStillPicture(activity: MainActivity, params: CameraParams) {
             } catch (e: CameraAccessException) {
                 e.printStackTrace()
             }
-
             //Do the capture
-            if (28 <= Build.VERSION.SDK_INT)
+            if (28 <= Build.VERSION.SDK_INT )
                 params.captureSession?.captureSingleRequest(params.captureBuilder?.build(), params.backgroundExecutor, StillCaptureSessionCallback(activity, params))
             else
                 params.captureSession?.capture(params.captureBuilder?.build(), StillCaptureSessionCallback(activity, params),
-                        params.backgroundHandler)
+                    params.backgroundHandler)
+
         }
     } catch (e: CameraAccessException) {
         e.printStackTrace()
@@ -393,7 +400,7 @@ fun unlockFocus(activity: MainActivity, params: CameraParams) {
 
     try {
         if (null != params.device) {
-                // Reset auto-focus
+            // Reset auto-focus
 //                params.captureRequestBuilder?.set(CaptureRequest.CONTROL_AF_TRIGGER,
 //                        CaptureRequest.CONTROL_AF_TRIGGER_CANCEL)
 //                params.captureSession?.capture(params.captureRequestBuilder?.build(), params.captureCallback,
@@ -422,7 +429,7 @@ fun rotatePreviewTexture(activity: MainActivity, params: CameraParams, textureVi
         previewRect.offset(centerX - previewRect.centerX(), centerY - previewRect.centerY());
         matrix.setRectToRect(viewRect, previewRect, Matrix.ScaleToFit.FILL);
         val scale: Float = Math.max(textureView.width.toFloat() / params.minSize.width.toFloat() ,
-                textureView.height.toFloat() / params.minSize.height.toFloat());
+            textureView.height.toFloat() / params.minSize.height.toFloat());
         matrix.postScale(scale, scale, centerX, centerY);
         matrix.postRotate(90f * (rotation - 2), centerX, centerY);
     } else if (Surface.ROTATION_180 == rotation) {

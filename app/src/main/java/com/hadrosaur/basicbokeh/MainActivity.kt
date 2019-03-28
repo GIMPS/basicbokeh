@@ -144,7 +144,6 @@ class MainActivity : AppCompatActivity() {
             camViewModel.getDoDualCamShot().value = isChecked
             PrefHelper.setDualCam(this, isChecked)
         }
-
         switch_mode.isChecked = PrefHelper.getDualCam(this)
 
         val modeToggleObserver = object : Observer<Boolean> {
@@ -153,7 +152,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
         camViewModel.getDoDualCamShot().observe(this, modeToggleObserver)
-
         //Set up show intermediates switch
         switch_intermediate.setOnCheckedChangeListener { switch, isChecked ->
             camViewModel.getShowIntermediate().value = isChecked

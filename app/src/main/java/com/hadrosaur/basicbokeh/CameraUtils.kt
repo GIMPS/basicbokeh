@@ -33,6 +33,8 @@ import com.hadrosaur.basicbokeh.MainActivity.Companion.ORIENTATIONS
 import com.hadrosaur.basicbokeh.MainActivity.Companion.normalLensId
 import com.hadrosaur.basicbokeh.MainActivity.Companion.wideAngleId
 import kotlinx.android.synthetic.main.activity_main.*
+import org.opencv.core.CvType
+import org.opencv.core.Mat
 import java.util.*
 
 
@@ -76,12 +78,11 @@ fun initializeCameras(activity: MainActivity) {
                 }
                 //Bokeh calculations
                 if (Build.VERSION.SDK_INT >= 28) {
+
                     lensDistortion = cameraChars.get(CameraCharacteristics.LENS_DISTORTION)
                     intrinsicCalibration = cameraChars.get(CameraCharacteristics.LENS_INTRINSIC_CALIBRATION)
                     poseRotation = cameraChars.get(CameraCharacteristics.LENS_POSE_ROTATION)
                     poseTranslation = cameraChars.get(CameraCharacteristics.LENS_POSE_TRANSLATION)
-
-                    distortionModes = cameraChars.get(CameraCharacteristics.DISTORTION_CORRECTION_AVAILABLE_MODES) ?: intArrayOf(CameraMetadata.DISTORTION_CORRECTION_MODE_OFF)
 
 //                    for (mode in distortionModes) {
 //                        Logd("This camera has distortion mode: " + mode)
@@ -147,6 +148,7 @@ fun initializeCameras(activity: MainActivity) {
                     physicalCameras = cameraChars.physicalCameraIds
                 }
 
+
                 //Get image capture sizes
                 val map = characteristics?.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
 
@@ -157,7 +159,6 @@ fun initializeCameras(activity: MainActivity) {
                             CompareSizesByArea())
                     minSize = Collections.min(Arrays.asList(*map.getOutputSizes(ImageFormat.JPEG)),
                             CompareSizesByArea())
-
                     setupImageReader(activity, this)
                 } //if map != null
             }
@@ -172,46 +173,47 @@ fun initializeCameras(activity: MainActivity) {
         }
 
         //Next, if we have a front-facing camera, use the first one
-        for (tempCameraParams in MainActivity.cameraParams) {
-            if (tempCameraParams.value.isFront) {
-                MainActivity.wideAngleId = tempCameraParams.value.id ?: MainActivity.cameraParams.keys.first()
-                MainActivity.normalLensId = MainActivity.wideAngleId
-            }
-        }
+//        for (tempCameraParams in MainActivity.cameraParams) {
+//            if (tempCameraParams.value.isFront) {
+//                MainActivity.wideAngleId = tempCameraParams.value.id ?: MainActivity.cameraParams.keys.first()
+//                MainActivity.normalLensId = MainActivity.wideAngleId
+//            }
+//        }
 
         //Determine the first multi-camera logical camera (front or back)
         //Then choose the shortest focal for the wide-angle background camera
         //And closest to 50mm for the "normal lens"
         for (tempCameraParams in MainActivity.cameraParams) {
             if (tempCameraParams.value.hasMulti) {
-                MainActivity.logicalCamId = tempCameraParams.key
-                if(!tempCameraParams.value.physicalCameras.isEmpty()) {
-                    //Determine the widest angle lens
-                    MainActivity.wideAngleId = tempCameraParams.value.physicalCameras.first()
-                    for (physicalCamera in tempCameraParams.value.physicalCameras) {
-                        val tempLens: Float = MainActivity.cameraParams.get(physicalCamera)?.smallestFocalLength ?: MainActivity.INVALID_FOCAL_LENGTH
-                        val minLens: Float = MainActivity.cameraParams.get(MainActivity.wideAngleId)?.smallestFocalLength ?: MainActivity.INVALID_FOCAL_LENGTH
-                        if (tempLens < minLens)
-                            MainActivity.wideAngleId = physicalCamera
-                    }
-
-                    //Determine the closest to "normal" that is not the wide angle lens
-                    MainActivity.normalLensId = tempCameraParams.value.physicalCameras.first()
-                    for (physicalCamera in tempCameraParams.value.physicalCameras) {
-                        if (physicalCamera.equals(MainActivity.wideAngleId))
-                            continue
-
-                        //If these are still set to the same camera, change them so we have two different cameras
-                        if (normalLensId == wideAngleId)
-                            normalLensId = physicalCamera
-
-                        val tempLens: Float = MainActivity.cameraParams.get(physicalCamera)?.minDeltaFromNormal ?: MainActivity.INVALID_FOCAL_LENGTH
-                        val normalLens: Float = MainActivity.cameraParams.get(MainActivity.normalLensId)?.minDeltaFromNormal ?: MainActivity.INVALID_FOCAL_LENGTH
-                        if (tempLens < normalLens)
-                            MainActivity.normalLensId = physicalCamera
-                    }
-                }
-
+//                MainActivity.logicalCamId = tempCameraParams.key
+//                if(!tempCameraParams.value.physicalCameras.isEmpty()) {
+//                    //Determine the widest angle lens
+//                    MainActivity.wideAngleId = tempCameraParams.value.physicalCameras.first()
+//                    for (physicalCamera in tempCameraParams.value.physicalCameras) {
+//                        val tempLens: Float = MainActivity.cameraParams.get(physicalCamera)?.smallestFocalLength ?: MainActivity.INVALID_FOCAL_LENGTH
+//                        val minLens: Float = MainActivity.cameraParams.get(MainActivity.wideAngleId)?.smallestFocalLength ?: MainActivity.INVALID_FOCAL_LENGTH
+//                        if (tempLens < minLens)
+//                            MainActivity.wideAngleId = physicalCamera
+//                    }
+//
+//                    //Determine the closest to "normal" that is not the wide angle lens
+//                    MainActivity.normalLensId = tempCameraParams.value.physicalCameras.first()
+//                    for (physicalCamera in tempCameraParams.value.physicalCameras) {
+//                        if (physicalCamera.equals(MainActivity.wideAngleId))
+//                            continue
+//
+//                        //If these are still set to the same camera, change them so we have two different cameras
+//                        if (normalLensId == wideAngleId)
+//                            normalLensId = physicalCamera
+//
+//                        val tempLens: Float = MainActivity.cameraParams.get(physicalCamera)?.minDeltaFromNormal ?: MainActivity.INVALID_FOCAL_LENGTH
+//                        val normalLens: Float = MainActivity.cameraParams.get(MainActivity.normalLensId)?.minDeltaFromNormal ?: MainActivity.INVALID_FOCAL_LENGTH
+//                        if (tempLens < normalLens)
+//                            MainActivity.normalLensId = physicalCamera
+//                    }
+//                }
+                MainActivity.wideAngleId = "2"
+                MainActivity.normalLensId = "3"
                 MainActivity.Logd("Found a multi: " + MainActivity.logicalCamId + " with wideAngle: " + MainActivity.wideAngleId + "(" + MainActivity.cameraParams.get(MainActivity.wideAngleId)?.smallestFocalLength
                         + ") and normal: " + MainActivity.normalLensId + " (" + MainActivity.cameraParams.get(MainActivity.normalLensId)?.minDeltaFromNormal + ")")
 
@@ -234,13 +236,15 @@ fun initializeCameras(activity: MainActivity) {
         MainActivity.cameraParams.get(MainActivity.wideAngleId)?.previewTextureView  = activity.texture_background
         MainActivity.cameraParams.get(MainActivity.wideAngleId)?.previewTextureView?.surfaceTextureListener =
                 TextureListener(MainActivity.cameraParams.get(MainActivity.wideAngleId)!!, activity, activity.texture_background)
-
+        Logd(MainActivity.wideAngleId)
         // If multi-camera, ready both preview textures
-        if (MainActivity.wideAngleId != MainActivity.normalLensId) {
-            MainActivity.cameraParams.get(MainActivity.normalLensId)?.previewTextureView  = activity.texture_foreground
-            MainActivity.cameraParams.get(MainActivity.normalLensId)?.previewTextureView?.surfaceTextureListener =
-                    TextureListener(MainActivity.cameraParams.get(MainActivity.normalLensId)!!, activity, activity.texture_foreground)
-        }
+//        if (MainActivity.wideAngleId != MainActivity.normalLensId) {
+//            MainActivity.cameraParams.get(MainActivity.normalLensId)?.previewTextureView  = activity.texture_foreground
+//            MainActivity.cameraParams.get(MainActivity.normalLensId)?.previewTextureView?.surfaceTextureListener =
+//                    TextureListener(MainActivity.cameraParams.get(MainActivity.normalLensId)!!, activity, activity.texture_foreground)
+//        }
+
+
 
 
 //        //TODO: DYnamically blur preview, doing something like this: https://stackoverflow.com/questions/34972250/android-dynamically-blur-surface-with-video
@@ -321,16 +325,17 @@ fun getRequiredBitmapRotation(activity: MainActivity, depthMapCorrect: Boolean =
 fun setupImageReader(activity: MainActivity, params: CameraParams) {
     with (params) {
         params.imageReader?.close()
-        imageReader = ImageReader.newInstance(maxSize.width, maxSize.height,
-                ImageFormat.JPEG, /*maxImages*/10)
+        imageReader = ImageReader.newInstance(2976, 2976,
+                ImageFormat.JPEG, /*maxImages*/20)
         imageReader?.setOnImageAvailableListener(
                 imageAvailableListener, backgroundHandler)
 
         //For some cameras, using the max preview size can conflict with big image captures
         //We just uses the smallest preview size to avoid this situation
-        params.previewTextureView?.surfaceTexture?.setDefaultBufferSize(minSize.width, minSize.height)
-        params.previewTextureView?.setAspectRatio(minSize.width, minSize.height)
-//        params.previewTextureView?.surfaceTexture?.setDefaultBufferSize(640, 480)
+//        params.previewTextureView?.surfaceTexture?.setDefaultBufferSize(maxSize.width, maxSize.height)
+//        params.previewTextureView?.setAspectRatio(maxSize.width, maxSize.height)
+//        params.previewTextureView?.surfaceTexture?.setDefaultBufferSize(0, 0)
+//        params.previewTextureView?.setAspectRatio(0,0)
     }
 
 

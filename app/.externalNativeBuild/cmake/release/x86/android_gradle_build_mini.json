@@ -1,0 +1,16 @@
+{
+  "buildFiles": [
+    "/Users/jason/Documents/GitHub/basicbokeh/app/CMakeLists.txt"
+  ],
+  "cleanCommands": [
+    "/Users/jason/Library/Android/sdk/cmake/3.6.4111459/bin/cmake --build /Users/jason/Documents/GitHub/basicbokeh/app/.externalNativeBuild/cmake/release/x86 --target clean"
+  ],
+  "libraries": {
+    "native-lib-Release-x86": {
+      "artifactName": "native-lib",
+      "buildCommand": "/Users/jason/Library/Android/sdk/cmake/3.6.4111459/bin/cmake --build /Users/jason/Documents/GitHub/basicbokeh/app/.externalNativeBuild/cmake/release/x86 --target native-lib",
+      "abi": "x86",
+      "output": "/Users/jason/Documents/GitHub/basicbokeh/app/build/intermediates/cmake/release/obj/x86/libnative-lib.so"
+    }
+  }
+}

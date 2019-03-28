@@ -103,7 +103,7 @@ class ImageAvailableListener(private val activity: MainActivity, internal var pa
             }
         }
 
-//        Log.d(MainActivity.LOG_TAG, "ImageReader. Post has been set.")
+        Log.d(MainActivity.LOG_TAG, "ImageReader. Post has been set.")
     }
 }
 
@@ -119,24 +119,23 @@ class ImageSaver internal constructor(private val activity: MainActivity, privat
         if (null == image)
             return
 
-        val file = File(Environment.getExternalStorageDirectory(), MainActivity.SAVE_FILE)
+//        val file = File(Environment.getExternalStorageDirectory(), MainActivity.SAVE_FILE)
 
         val buffer = image.planes[0].buffer
         val bytes = ByteArray(buffer.remaining())
         buffer.get(bytes)
 
 
-        val wasFaceDetected: Boolean =
-            CameraMetadata.STATISTICS_FACE_DETECT_MODE_OFF != cameraParams.bestFaceDetectionMode
-                && cameraParams.hasFace
-                && (cameraParams.faceBounds.left + cameraParams.faceBounds.right +
-                    cameraParams.faceBounds.bottom + cameraParams.faceBounds.top != 0)
 
+//        val wasFaceDetected: Boolean =
+//            CameraMetadata.STATISTICS_FACE_DETECT_MODE_OFF != cameraParams.bestFaceDetectionMode
+//                && cameraParams.hasFace
+//                && (cameraParams.faceBounds.left + cameraParams.faceBounds.right +
+//                    cameraParams.faceBounds.bottom + cameraParams.faceBounds.top != 0)
 
         //1. Single lens: cut out head, paste it on blurred/sepia'd background
         val backgroundImageBitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, null)
         val foregroundImageBitmap = backgroundImageBitmap.copy(backgroundImageBitmap.config, true)
-
         if (PrefHelper.getIntermediate(activity)) {
             activity.runOnUiThread {
                 activity.imageIntermediate1.setImageBitmap(horizontalFlip(rotateBitmap(backgroundImageBitmap, capturedImageRotation)))
@@ -145,6 +144,7 @@ class ImageSaver internal constructor(private val activity: MainActivity, privat
 
         //Foreground
         var croppedForeground = Bitmap.createBitmap(10, 10, Bitmap.Config.ARGB_8888)
+
         if (PrefHelper.getGrabCut(activity)) {
 
             MainActivity.Logd("Image callback Grabcut Bounds: bottom: " + cameraParams.grabCutBounds.bottom + " left: " + cameraParams.grabCutBounds.left + " right: " + cameraParams.grabCutBounds.right + " top: " + cameraParams.grabCutBounds.top)
@@ -208,44 +208,44 @@ class ImageSaver internal constructor(private val activity: MainActivity, privat
             }
         }
 
-        if (wasFaceDetected) {
-            val pasteRect = Rect(cameraParams.expandedFaceBounds)
-            pasteRect.top = (pasteRect.top.toFloat() * BLUR_SCALE_FACTOR).roundToInt()
-            pasteRect.left = (pasteRect.left.toFloat() * BLUR_SCALE_FACTOR).roundToInt()
-            val combinedBitmap = pasteBitmap(activity, blurredBackground, featheredForeground, pasteRect)
-            val rotatedImageBitmap = rotateBitmap(combinedBitmap, capturedImageRotation.toFloat())
+//        if (wasFaceDetected) {
+//            val pasteRect = Rect(cameraParams.expandedFaceBounds)
+//            pasteRect.top = (pasteRect.top.toFloat() * BLUR_SCALE_FACTOR).roundToInt()
+//            pasteRect.left = (pasteRect.left.toFloat() * BLUR_SCALE_FACTOR).roundToInt()
+//            val combinedBitmap = pasteBitmap(activity, blurredBackground, featheredForeground, pasteRect)
+//            val rotatedImageBitmap = rotateBitmap(combinedBitmap, capturedImageRotation.toFloat())
+//
+//            var finalBitmap = rotatedImageBitmap
+//
+//            //If front facing camera, flip the bitmap
+//            if (cameraParams.isFront)
+//                finalBitmap = horizontalFlip(finalBitmap)
+//
+//            //Set the image view to be the final
+//            setCapturedPhoto(activity, imageView, finalBitmap)
+//
+//            //Save to disk
+//            if (PrefHelper.getSaveIntermediate(activity)) {
+//                WriteFile(activity, finalBitmap,"FloatingHeadShot", 100, true)
+//            }
 
-            var finalBitmap = rotatedImageBitmap
-
-            //If front facing camera, flip the bitmap
-            if (cameraParams.isFront)
-                finalBitmap = horizontalFlip(finalBitmap)
-
-            //Set the image view to be the final
-            setCapturedPhoto(activity, imageView, finalBitmap)
-
-            //Save to disk
-            if (PrefHelper.getSaveIntermediate(activity)) {
-                WriteFile(activity, finalBitmap,"FloatingHeadShot", 100, true)
-            }
-
-        } else {
-            Logd("No face detected.")
-            val rotatedImageBitmap = rotateBitmap(blurredBackground, capturedImageRotation)
-            var finalBitmap = rotatedImageBitmap
-
-            //If front facing camera, flip the bitmap
-            if (cameraParams.isFront)
-                finalBitmap = horizontalFlip(finalBitmap)
-
-            //Set the image view to be the final
-            setCapturedPhoto(activity, imageView, finalBitmap)
-
-            //Save to disk
-            if (PrefHelper.getSaveIntermediate(activity)) {
-                WriteFile(activity, finalBitmap,"BackgroundShot")
-            }
-        }
+//        } else {
+//            Logd("No face detected.")
+//            val rotatedImageBitmap = rotateBitmap(blurredBackground, capturedImageRotation)
+//            var finalBitmap = rotatedImageBitmap
+//
+//            //If front facing camera, flip the bitmap
+//            if (cameraParams.isFront)
+//                finalBitmap = horizontalFlip(finalBitmap)
+//
+//            //Set the image view to be the final
+//            setCapturedPhoto(activity, imageView, finalBitmap)
+//
+//            //Save to disk
+//            if (PrefHelper.getSaveIntermediate(activity)) {
+//                WriteFile(activity, finalBitmap,"BackgroundShot")
+//            }
+//        }
 
         activity.runOnUiThread {
             activity.captureFinished()
@@ -511,8 +511,8 @@ class OpenCVLoaderCallback(val context: Context) : BaseLoaderCallback(context) {
     }
 }
 
-fun WriteFile(activity: MainActivity, bitmap: Bitmap, name: String, quality: Int = 100, writePNG: Boolean = false) {
-    val PHOTOS_DIR: String = "BasicBokeh"
+fun WriteFile(activity: MainActivity, bitmap: Bitmap, name: String, quality: Int = 100, writePNG: Boolean = false, dirTimeStamp: String = "") {
+    val PHOTOS_DIR: String = "BasicBokeh/"+dirTimeStamp
 
     var jpgFile = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM),
             File.separatorChar + PHOTOS_DIR + File.separatorChar +
@@ -565,13 +565,15 @@ fun WriteFile(activity: MainActivity, bitmap: Bitmap, name: String, quality: Int
     Logd("WriteFile: Completed.")
 }
 
-fun getFileHandle (activity: MainActivity, name: String, withTimestamp: Boolean) : File {
-    val PHOTOS_DIR: String = "BasicBokeh"
+fun getFileHandle (activity: MainActivity, name: String, withTimestamp: Boolean, dirTimeStamp: String) : File {
+//    val PHOTOS_DIR: String = "BasicBokeh"
 
+    val PHOTOS_DIR: String = "BasicBokeh/"+ dirTimeStamp
     var filePath = File.separatorChar + PHOTOS_DIR + File.separatorChar + name
 
     if (withTimestamp)
         filePath += "-" + generateTimestamp()
+
 
     filePath += ".jpg"
 
@@ -592,14 +594,14 @@ fun getFileHandle (activity: MainActivity, name: String, withTimestamp: Boolean)
     return jpgFile
 }
 
-fun WriteFile(activity: MainActivity, bitmap: Bitmap, name: String, withTimestamp: Boolean = false) {
+fun WriteFile(activity: MainActivity, bitmap: Bitmap, name: String, withTimestamp: Boolean = false, dirTimeStamp: String = "") {
 
-    val jpgFile = getFileHandle(activity, name, withTimestamp)
+    val jpgFile = getFileHandle(activity, name, withTimestamp, dirTimeStamp)
 
     var output: FileOutputStream? = null
     try {
         output = FileOutputStream(jpgFile)
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 91, output)
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, output)
     } catch (e: IOException) {
         e.printStackTrace()
     } finally {
@@ -621,9 +623,9 @@ fun WriteFile(activity: MainActivity, bitmap: Bitmap, name: String, withTimestam
     Logd("WriteFile: Completed.")
 }
 
-fun WriteFile(activity: MainActivity, bytes: ByteArray, name: String, withTimestamp: Boolean = false) {
+fun WriteFile(activity: MainActivity, bytes: ByteArray, name: String, withTimestamp: Boolean = false, dirTimeStamp: String = "") {
 
-    val jpgFile = getFileHandle(activity, name, withTimestamp)
+    val jpgFile = getFileHandle(activity, name, withTimestamp, dirTimeStamp)
 
     var output: FileOutputStream? = null
     try {
@@ -652,6 +654,11 @@ fun WriteFile(activity: MainActivity, bytes: ByteArray, name: String, withTimest
 
 fun generateTimestamp(): String {
     val sdf = SimpleDateFormat("yyyy_MM_dd_HH_mm_ss_SSS", Locale.US)
+    return sdf.format(Date())
+}
+
+fun generateTimestamp2Sec(): String {
+    val sdf = SimpleDateFormat("yyyy_MM_dd_HH_mm_ss", Locale.US)
     return sdf.format(Date())
 }
 
