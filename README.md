@@ -1,3 +1,9 @@
+# Stereo Camera Material Image Collection Tool
+
+This tool is developed from goolge open soure project.
+Only compatible with Huawei Mate 20 Series
+
+
 # BasicBokeh
 
 ## This is not an officially supported Google product
